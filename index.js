@@ -16,10 +16,12 @@ app.get('/', (req, res) => {
 });
 
 const userData = {};
+let filters = {};
 
 handleWalletConnections(io, userData);
 
 io.on('connection', (socket) => {
+  console.log('Client connected:', socket.id);
   socket.emit('test', 'hello');
 
   socket.on('getLatestPrice', () => {
@@ -37,12 +39,26 @@ io.on('connection', (socket) => {
       }
     });
   });
+
+  socket.on('updateFilters', (f) => {
+    filters = f;
+  });
+});
+  });
+
+  socket.on('getGraphData', ({ period, interval }) => {
+    getGraphData(period, interval, (err, data) => {
+      if (!err && data) {
+        socket.emit('graphData', data);
+      }
+    });
+  });
 });
 
 xrpl.connectToXRPL();
 
 xrpl.client.on('ledgerClosed', (ledger) => {
-  xrpl.processLedger(ledger, io, userData);
+  xrpl.processLedger(ledger, io, userData, filters);
 });
 
 server.listen(3000, () => {

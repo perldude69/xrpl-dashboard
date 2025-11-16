@@ -29,6 +29,7 @@
         .notification.error { background: #ff0000; }
         .no-border th, .no-border td { border: none; }
         .no-border th { background-color: transparent; color: #00ff00; }
+        .edit-icon:hover { color: #ff6600; }
     </style>
 </head>
 <body>
@@ -40,10 +41,12 @@
          <button id="inspectLedger" style="background: #000; color: #00ff00; border: 1px solid #ff6600; padding: 2px 5px; cursor: pointer;">Inspect Ledger</button>
         <button id="exportData">Export Data JSON</button>
         <input type="file" id="importData" accept=".json" style="display: none;">
-        <button id="importBtn">Import Data JSON</button>
+         <button id="importBtn">Import Data JSON</button>
+         <button id="newPanel">New Panel</button>
     </div>
     <div class="panels-container">
-        <div class="panel" id="xrpPanel">
+        <div class="panel" id="xrpPanel" style="position: relative;">
+            <span class="edit-icon" data-panel="xrp" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
             <div class="summary" onclick="togglePanel('xrp')">
                 <div>Currency: XRP</div><div>Filter: >10,000,000</div><div>Captured: <span id="xrpCount">0</span></div>
             </div>
@@ -65,7 +68,8 @@
                 </table>
             </div>
         </div>
-        <div class="panel" id="rlusdPanel">
+        <div class="panel" id="rlusdPanel" style="position: relative;">
+            <span class="edit-icon" data-panel="rlusd" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
             <div class="summary" onclick="togglePanel('rlusd')">
                 <div>Currency: RLUSD</div><div>Filter: >10</div><div>Captured: <span id="rlusdCount">0</span></div>
             </div>
@@ -89,7 +93,8 @@
         </div>
     </div>
 
-    <div class="panel" id="graphPanel">
+    <div class="panel" id="graphPanel" style="position: relative;">
+        <span class="edit-icon" data-panel="graph" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
         <div class="summary" onclick="togglePanel('graph')">
             <div>XRP Price Graph</div><div>Latest: Loading...</div>
         </div>
@@ -123,7 +128,8 @@
     <div class="panel">
         <h1>Wallet Activity Alerts</h1>
         <p class="threshold">Monitoring activity for up to 10 entered XRP addresses</p>
-        <div id="walletPanel" style="border: 2px solid #ff6600; border-radius: 10px; padding: 10px; width: auto; display: inline-block;">
+        <div id="walletPanel" style="border: 2px solid #ff6600; border-radius: 10px; padding: 10px; width: auto; display: inline-block; position: relative;">
+            <span class="edit-icon" data-panel="wallet" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
             <label><input type="checkbox" id="editMode"> Edit</label><br><br>
             <div id="walletList">
                 <!-- Wallets will be dynamically generated -->
@@ -136,6 +142,22 @@
         <h2>Ledger Transactions</h2>
         <div id="ledgerTxList"></div>
     </div>
+    <div id="editModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 2px solid #ff6600; padding: 20px; z-index: 1001; color: #00ff00;">
+        <span id="closeEditModal" style="position: absolute; top: 5px; right: 5px; cursor: pointer; font-size: 20px;">×</span>
+        <h3>Edit Panel</h3>
+        <div id="editModalContent"></div>
+        <button id="deletePanel" style="background: #ff0000; color: #fff; margin-top: 10px;">Delete Panel</button>
+    </div>
+    <div id="newPanelModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 2px solid #ff6600; padding: 20px; z-index: 1001; color: #00ff00;">
+        <span id="closeNewModal" style="position: absolute; top: 5px; right: 5px; cursor: pointer; font-size: 20px;">×</span>
+        <h3>New Panel</h3>
+        <label>Currency Code: <input id="newCurrencyCode" style="background: #000; color: #00ff00; border: 1px solid #ff6600;"></label><br><br>
+        <label>Issuer Wallet: <input id="newIssuer" style="background: #000; color: #00ff00; border: 1px solid #ff6600;"></label><br><br>
+        <label>Limit: <input id="newLimit" type="number" style="background: #000; color: #00ff00; border: 1px solid #ff6600;"></label><br><br>
+        <button id="createPanel">Create</button>
+        <button id="cancelPanel">Cancel</button>
+    </div>
+    <div id="modalOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;"></div>
     <script src="/socket.io/socket.io.js?v=1"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="client.js?v=1"></script>

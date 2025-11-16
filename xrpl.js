@@ -31,7 +31,7 @@ function connectToXRPL(retryCount = 0) {
   });
 }
 
-function processLedger(ledger, io, userData) {
+function processLedger(ledger, io, userData, filters) {
   module.exports.client.request({
     command: 'ledger',
     ledger_index: ledger.ledger_index,
@@ -59,35 +59,23 @@ function processLedger(ledger, io, userData) {
     for (const tx of fullTransactions) {
       totalBurned += parseInt(tx.Fee) || 0;
       if (tx.TransactionType === 'Payment') {
-        let amountDrops = 0;
-        if (tx.Amount) {
-          if (typeof tx.Amount === 'string') {
-            amountDrops = parseInt(tx.Amount);
-          } else if (typeof tx.Amount === 'object' && tx.Amount.currency === 'XRP') {
-            amountDrops = parseInt(tx.Amount.value);
+        // Check all filters
+        for (const [key, f] of Object.entries(filters)) {
+          let matches = false;
+          let amount = 0;
+          if (f.currency === 'XRP' && typeof tx.Amount === 'string') {
+            amount = parseInt(tx.Amount) / 1000000;
+            matches = amount > f.limit;
+          } else if (typeof tx.Amount === 'object' && tx.Amount.currency === f.currency && (!f.issuer || tx.Amount.issuer === f.issuer)) {
+            amount = parseFloat(tx.Amount.value);
+            matches = amount > f.limit;
           }
-        }
-        if (amountDrops > 1e13) {
-          const amountXRP = amountDrops / 1000000;
-          totalXRP += amountXRP;
-          xrpPayments++;
-          io.emit('newTransaction', {
-            ledger: ledger.ledger_index,
-            sender: tx.Account,
-            receiver: tx.Destination,
-            amount: amountXRP,
-            timestamp: new Date().toISOString()
-          });
-        }
-        // Check for RLUSD payments
-        if (typeof tx.Amount === 'object' && tx.Amount.currency === RLUSD_CURRENCY && tx.Amount.issuer === RLUSD_ISSUER) {
-          const amountRLUSD = parseFloat(tx.Amount.value);
-          if (amountRLUSD > 10) {
-            io.emit('newRLUSDTransaction', {
+          if (matches) {
+            io.emit('new' + key.charAt(0).toUpperCase() + key.slice(1) + 'Transaction', {
               ledger: ledger.ledger_index,
               sender: tx.Account,
               receiver: tx.Destination,
-              amount: amountRLUSD,
+              amount,
               timestamp: new Date().toISOString()
             });
           }

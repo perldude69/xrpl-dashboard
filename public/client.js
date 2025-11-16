@@ -14,6 +14,8 @@ const rlusdBody = document.querySelector('#rlusd tbody');
 let walletData = JSON.parse(localStorage.getItem('walletData') || '{"addresses":[],"nicknames":{},"alerts":{}}');
 let priceChart;
 let currentLedgerTxs = [];
+let filters = JSON.parse(localStorage.getItem('filters') || '{"xrp":{"limit":10000000},"rlusd":{"currency":"RLUSD","issuer":"rMxCKbEDwqr76QuheSUMdEGf4B9xJ8m5De","limit":10}}');
+let currentEditingPanel = '';
 
 function saveWalletData() {
   localStorage.setItem('walletData', JSON.stringify(walletData));
@@ -110,6 +112,7 @@ function saveWallets() {
 window.addEventListener('load', () => {
   renderWalletList();
   socket.emit('updateWalletData', walletData);
+  socket.emit('updateFilters', filters);
   if (walletData.addresses.length) socket.emit('setWatchedAddresses', walletData.addresses);
   loadGraphData();
   setInterval(() => {
@@ -123,6 +126,36 @@ window.addEventListener('load', () => {
     } else {
       renderWalletList();
     }
+  });
+
+  document.querySelectorAll('.edit-icon').forEach(icon => {
+    icon.addEventListener('click', (e) => {
+      editPanel(e.target.dataset.panel);
+    });
+  });
+
+  document.getElementById('newPanel').addEventListener('click', () => {
+    showNewPanelModal();
+  });
+
+  document.getElementById('closeEditModal').addEventListener('click', () => {
+    hideEditModal();
+  });
+
+  document.getElementById('deletePanel').addEventListener('click', () => {
+    deletePanel();
+  });
+
+  document.getElementById('closeNewModal').addEventListener('click', () => {
+    hideNewPanelModal();
+  });
+
+  document.getElementById('createPanel').addEventListener('click', () => {
+    createNewPanel();
+  });
+
+  document.getElementById('cancelPanel').addEventListener('click', () => {
+    hideNewPanelModal();
   });
 });
 
@@ -185,6 +218,25 @@ socket.on('newRLUSDTransaction', (transaction) => {
   rlusdBody.insertBefore(row, rlusdBody.firstChild);
   document.getElementById('rlusdCount').textContent = rlusdBody.children.length;
 });
+
+// Dynamic listeners for custom panels
+function addCustomTransactionListener(key) {
+  socket.on('new' + key.charAt(0).toUpperCase() + key.slice(1) + 'Transaction', (transaction) => {
+    const tbody = document.querySelector('#' + key + 'Table tbody');
+    if (tbody) {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${transaction.ledger}</td>
+        <td>${transaction.sender}</td>
+        <td>${transaction.receiver}</td>
+        <td>${transaction.amount}</td>
+        <td>${transaction.timestamp}</td>
+      `;
+      tbody.insertBefore(row, tbody.firstChild);
+      document.getElementById(key + 'Count').textContent = tbody.children.length;
+    }
+  });
+}
 
 socket.on('balances', (balances) => {
   balances.forEach((b, index) => {
@@ -311,6 +363,136 @@ function togglePanel(id) {
 document.getElementById('refreshGraph').addEventListener('click', loadGraphData);
 document.getElementById('periodSelect').addEventListener('change', loadGraphData);
 document.getElementById('intervalSelect').addEventListener('change', loadGraphData);
+
+function editPanel(panelType) {
+  currentEditingPanel = panelType;
+  const content = document.getElementById('editModalContent');
+  if (panelType === 'wallet') {
+    content.innerHTML = '<p>Wallet panel: Toggle edit mode.</p><button id="toggleEdit">Toggle Edit</button>';
+    document.getElementById('toggleEdit').addEventListener('click', () => {
+      const editMode = document.getElementById('editMode');
+      editMode.checked = !editMode.checked;
+      renderWalletList();
+      hideEditModal();
+    });
+  } else if (panelType === 'xrp') {
+    content.innerHTML = '<label>Limit: <input id="editXrpLimit" type="number" value="' + (filters.xrp?.limit || 10000000) + '"></label><br><button id="saveXrp">Save</button>';
+    document.getElementById('saveXrp').addEventListener('click', () => {
+      filters.xrp.limit = parseInt(document.getElementById('editXrpLimit').value);
+      localStorage.setItem('filters', JSON.stringify(filters));
+      socket.emit('updateFilters', filters);
+      hideEditModal();
+    });
+  } else if (panelType === 'rlusd') {
+    content.innerHTML = '<label>Currency: <input id="editRlusdCurrency" value="' + (filters.rlusd?.currency || 'RLUSD') + '"></label><br><label>Issuer: <input id="editRlusdIssuer" value="' + (filters.rlusd?.issuer || '') + '"></label><br><label>Limit: <input id="editRlusdLimit" type="number" value="' + (filters.rlusd?.limit || 10) + '"></label><br><button id="saveRlusd">Save</button>';
+    document.getElementById('saveRlusd').addEventListener('click', () => {
+      filters.rlusd.currency = document.getElementById('editRlusdCurrency').value;
+      filters.rlusd.issuer = document.getElementById('editRlusdIssuer').value;
+      filters.rlusd.limit = parseInt(document.getElementById('editRlusdLimit').value);
+      localStorage.setItem('filters', JSON.stringify(filters));
+      socket.emit('updateFilters', filters);
+      hideEditModal();
+    });
+  } else if (panelType === 'graph') {
+    content.innerHTML = '<p>Graph panel: Edit period and interval.</p><button id="editGraph">Edit Graph</button>';
+    document.getElementById('editGraph').addEventListener('click', () => {
+      // For now, just close
+      hideEditModal();
+    });
+  } else {
+    // Custom panels
+    const f = filters[panelType];
+    content.innerHTML = '<label>Currency: <input id="editCustomCurrency" value="' + (f?.currency || '') + '"></label><br><label>Issuer: <input id="editCustomIssuer" value="' + (f?.issuer || '') + '"></label><br><label>Limit: <input id="editCustomLimit" type="number" value="' + (f?.limit || 0) + '"></label><br><button id="saveCustom">Save</button>';
+    document.getElementById('saveCustom').addEventListener('click', () => {
+      filters[panelType].currency = document.getElementById('editCustomCurrency').value;
+      filters[panelType].issuer = document.getElementById('editCustomIssuer').value;
+      filters[panelType].limit = parseInt(document.getElementById('editCustomLimit').value);
+      localStorage.setItem('filters', JSON.stringify(filters));
+      socket.emit('updateFilters', filters);
+      hideEditModal();
+    });
+  }
+  document.getElementById('editModal').style.display = 'block';
+  document.getElementById('modalOverlay').style.display = 'block';
+}
+
+function hideEditModal() {
+  document.getElementById('editModal').style.display = 'none';
+  document.getElementById('modalOverlay').style.display = 'none';
+}
+
+function showNewPanelModal() {
+  document.getElementById('newPanelModal').style.display = 'block';
+  document.getElementById('modalOverlay').style.display = 'block';
+}
+
+function hideNewPanelModal() {
+  document.getElementById('newPanelModal').style.display = 'none';
+  document.getElementById('modalOverlay').style.display = 'none';
+}
+
+function createNewPanel() {
+  const code = document.getElementById('newCurrencyCode').value.trim();
+  const issuer = document.getElementById('newIssuer').value.trim();
+  const limit = parseInt(document.getElementById('newLimit').value);
+  if (!code || limit <= 0) {
+    showNotification('Invalid input', 'error');
+    return;
+  }
+  const panelId = 'custom' + Date.now();
+  filters[panelId] = { currency: code, issuer: issuer || null, limit };
+  localStorage.setItem('filters', JSON.stringify(filters));
+  socket.emit('updateFilters', filters);
+  // Create panel div
+  const panel = document.createElement('div');
+  panel.className = 'panel';
+  panel.id = panelId + 'Panel';
+  panel.style.position = 'relative';
+  panel.innerHTML = `
+    <span class="edit-icon" data-panel="${panelId}" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
+    <div class="summary" onclick="togglePanel('${panelId}')">
+      <div>Currency: ${code}</div><div>Filter: >${limit}</div><div>Captured: <span id="${panelId}Count">0</span></div>
+    </div>
+    <div class="full" id="${panelId}Full" style="display: none;" onclick="togglePanel('${panelId}')">
+      <h1>${code} Large Transactions Dashboard</h1>
+      <p class="threshold">Monitoring transactions greater than ${limit} ${code}</p>
+      <table id="${panelId}Table" onclick="event.stopPropagation()">
+        <thead>
+          <tr>
+            <th>Ledger Number</th>
+            <th>Sender Account</th>
+            <th>Receiver Account</th>
+            <th>Amount (${code})</th>
+            <th>Timestamp</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  `;
+  document.querySelector('.panels-container').appendChild(panel);
+  // Add event listener for new edit icon
+  panel.querySelector('.edit-icon').addEventListener('click', (e) => {
+    editPanel(e.target.dataset.panel);
+  });
+  // Add transaction listener
+  addCustomTransactionListener(panelId);
+  hideNewPanelModal();
+}
+
+function deletePanel() {
+  if (confirm('Are you sure you want to delete this panel?')) {
+    if (currentEditingPanel === 'wallet' || currentEditingPanel === 'xrp' || currentEditingPanel === 'rlusd' || currentEditingPanel === 'graph') {
+      showNotification('Cannot delete built-in panels', 'error');
+      return;
+    }
+    delete filters[currentEditingPanel];
+    localStorage.setItem('filters', JSON.stringify(filters));
+    socket.emit('updateFilters', filters);
+    document.getElementById(currentEditingPanel + 'Panel').remove();
+    hideEditModal();
+  }
+}
 
 document.getElementById('inspectLedger').addEventListener('click', () => {
   populateLedgerOverlay();
