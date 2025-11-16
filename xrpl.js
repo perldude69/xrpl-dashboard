@@ -15,7 +15,11 @@ function connectToXRPL(retryCount = 0) {
   client.connect().then(() => {
     console.log(`Connected to XRPL at ${servers[currentServerIndex]}`);
     isConnected = true;
-    client.on('disconnected', () => {});
+    client.on('disconnected', () => {
+      console.log('Disconnected from XRPL, attempting to reconnect...');
+      isConnected = false;
+      setTimeout(() => connectToXRPL(0), 5000); // Retry after 5 seconds
+    });
     client.request({ command: 'subscribe', streams: ['ledger'] }).then(() => {
       backfillPrices();
     }).catch(console.error);
