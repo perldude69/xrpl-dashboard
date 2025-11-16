@@ -44,16 +44,6 @@ io.on('connection', (socket) => {
     filters = f;
   });
 });
-  });
-
-  socket.on('getGraphData', ({ period, interval }) => {
-    getGraphData(period, interval, (err, data) => {
-      if (!err && data) {
-        socket.emit('graphData', data);
-      }
-    });
-  });
-});
 
 xrpl.connectToXRPL();
 
@@ -62,6 +52,4 @@ xrpl.client.on('ledgerClosed', (ledger) => {
 });
 
 server.listen(3000, () => {
-  console.log('Server running on port 3000');
-  xrpl.backfillPrices();
 });

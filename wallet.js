@@ -1,6 +1,6 @@
 function handleWalletConnections(io, userData) {
   io.on('connection', (socket) => {
-    userData[socket.id] = { addresses: [], nicknames: {}, alerts: {} };
+    userData[socket.id] = { socket, addresses: [], nicknames: {}, alerts: {} };
     socket.on('disconnect', () => {
       delete userData[socket.id];
     });

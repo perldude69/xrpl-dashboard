@@ -14,7 +14,7 @@ const rlusdBody = document.querySelector('#rlusd tbody');
 let walletData = JSON.parse(localStorage.getItem('walletData') || '{"addresses":[],"nicknames":{},"alerts":{}}');
 let priceChart;
 let currentLedgerTxs = [];
-let filters = JSON.parse(localStorage.getItem('filters') || '{"xrp":{"limit":10000000},"rlusd":{"currency":"RLUSD","issuer":"rMxCKbEDwqr76QuheSUMdEGf4B9xJ8m5De","limit":10}}');
+let filters = JSON.parse(localStorage.getItem('filters') || '{"xrp":{"currency":"XRP","limit":10000000},"rlusd":{"currency":"524C555344000000000000000000000000000000","issuer":"rMxCKbEDwqr76QuheSUMdEGf4B9xJ8m5De","limit":10}}');
 let currentEditingPanel = '';
 
 function saveWalletData() {
@@ -60,7 +60,7 @@ function renderWalletList() {
     const table = document.createElement('table');
     table.className = 'no-border';
     table.style.width = 'auto';
-    table.style.maxWidth = '600px';
+    table.style.maxWidth = '500px';
     table.style.borderCollapse = 'collapse';
     const thead = document.createElement('thead');
     thead.innerHTML = `
@@ -84,7 +84,7 @@ function renderWalletList() {
         tr.innerHTML = `
           <td style="padding: 5px;">${displayName}</td>
           <td style="padding: 5px;" id="balance${i}"></td>
-          <td style="padding: 5px; color: yellow; font-size: 20px; text-align: center;">${alertIcon}</td>
+          <td style="padding: 5px; color: #ffffff; font-size: 20px; text-align: center;">${alertIcon}</td>
         `;
         tbody.appendChild(tr);
       }
@@ -109,10 +109,66 @@ function saveWallets() {
   renderWalletList();
 }
 
+function getCurrencyDisplay(currency) {
+  const known = {
+    '524C555344000000000000000000000000000000': 'RLUSD',
+    '5553440000000000000000000000000000000000': 'USD',
+    '4254430000000000000000000000000000000000': 'BTC',
+    '4555520000000000000000000000000000000000': 'EUR',
+    '4742500000000000000000000000000000000000': 'GBP',
+    '4A50590000000000000000000000000000000000': 'JPY',
+    '434E590000000000000000000000000000000000': 'CNY'
+  };
+  return known[currency] || currency;
+}
+
+function createPanelFromFilter(panelId, f) {
+  const displayCurrency = getCurrencyDisplay(f.currency);
+  const panel = document.createElement('div');
+  panel.className = 'panel';
+  panel.id = panelId + 'Panel';
+  panel.style.position = 'relative';
+  panel.innerHTML = `
+    <span class="edit-icon" data-panel="${panelId}" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
+    <div class="summary" onclick="togglePanel('${panelId}')">
+      <div>Currency: ${displayCurrency}</div><div>Filter: >${f.limit}</div><div>Captured: <span id="${panelId}Count">0</span></div>
+    </div>
+    <div class="full" id="${panelId}Full" style="display: none;" onclick="togglePanel('${panelId}')">
+      <h1>${displayCurrency} Large Transactions Dashboard</h1>
+      <p class="threshold">Monitoring transactions greater than ${f.limit} ${displayCurrency}</p>
+      <table id="${panelId}Table" onclick="event.stopPropagation()">
+        <thead>
+          <tr>
+            <th>Ledger Number</th>
+            <th>Sender Account</th>
+            <th>Receiver Account</th>
+            <th>Amount (${displayCurrency})</th>
+            <th>Timestamp</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  `;
+  document.querySelector('.panels-container').appendChild(panel);
+  // Add event listener for edit icon
+  panel.querySelector('.edit-icon').addEventListener('click', (e) => {
+    editPanel(e.target.dataset.panel);
+  });
+  // Add transaction listener
+  addCustomTransactionListener(panelId);
+}
+
 window.addEventListener('load', () => {
   renderWalletList();
   socket.emit('updateWalletData', walletData);
   socket.emit('updateFilters', filters);
+  // Create panels for custom filters
+  for (const [key, f] of Object.entries(filters)) {
+    if (key !== 'xrp' && key !== 'rlusd' && key !== 'graph') {
+      createPanelFromFilter(key, f);
+    }
+  }
   if (walletData.addresses.length) socket.emit('setWatchedAddresses', walletData.addresses);
   loadGraphData();
   setInterval(() => {
@@ -381,6 +437,8 @@ function editPanel(panelType) {
       filters.xrp.limit = parseInt(document.getElementById('editXrpLimit').value);
       localStorage.setItem('filters', JSON.stringify(filters));
       socket.emit('updateFilters', filters);
+      // Update summary
+      document.querySelector('#xrpPanel .summary div:nth-child(2)').textContent = 'Filter: >' + filters.xrp.limit;
       hideEditModal();
     });
   } else if (panelType === 'rlusd') {
@@ -391,12 +449,38 @@ function editPanel(panelType) {
       filters.rlusd.limit = parseInt(document.getElementById('editRlusdLimit').value);
       localStorage.setItem('filters', JSON.stringify(filters));
       socket.emit('updateFilters', filters);
+      // Update summary
+      document.querySelector('#rlusdPanel .summary div:nth-child(2)').textContent = 'Filter: >' + filters.rlusd.limit;
       hideEditModal();
     });
   } else if (panelType === 'graph') {
-    content.innerHTML = '<p>Graph panel: Edit period and interval.</p><button id="editGraph">Edit Graph</button>';
-    document.getElementById('editGraph').addEventListener('click', () => {
-      // For now, just close
+    const currentPeriod = document.getElementById('periodSelect').value;
+    const currentInterval = document.getElementById('intervalSelect').value;
+    content.innerHTML = `
+      <label>Period: <select id="editPeriod">
+        <option value="1d">Last 1 Day</option>
+        <option value="7d">Last 7 Days</option>
+        <option value="30d">Last 30 Days</option>
+        <option value="90d">Last 90 Days</option>
+        <option value="all">All Time</option>
+      </select></label><br>
+      <label>Interval: <select id="editInterval">
+        <option value="1m">1 Minute</option>
+        <option value="1h">1 Hour</option>
+        <option value="4h">4 Hours</option>
+        <option value="12h">12 Hours</option>
+        <option value="1d">1 Day</option>
+      </select></label><br>
+      <button id="saveGraph">Save</button>
+    `;
+    document.getElementById('editPeriod').value = currentPeriod;
+    document.getElementById('editInterval').value = currentInterval;
+    document.getElementById('saveGraph').addEventListener('click', () => {
+      const newPeriod = document.getElementById('editPeriod').value;
+      const newInterval = document.getElementById('editInterval').value;
+      document.getElementById('periodSelect').value = newPeriod;
+      document.getElementById('intervalSelect').value = newInterval;
+      loadGraphData();
       hideEditModal();
     });
   } else {
@@ -409,6 +493,10 @@ function editPanel(panelType) {
       filters[panelType].limit = parseInt(document.getElementById('editCustomLimit').value);
       localStorage.setItem('filters', JSON.stringify(filters));
       socket.emit('updateFilters', filters);
+      // Update summary
+      const displayCurrency = getCurrencyDisplay(filters[panelType].currency);
+      document.querySelector('#' + panelType + 'Panel .summary div:nth-child(1)').textContent = 'Currency: ' + displayCurrency;
+      document.querySelector('#' + panelType + 'Panel .summary div:nth-child(2)').textContent = 'Filter: >' + filters[panelType].limit;
       hideEditModal();
     });
   }
@@ -432,51 +520,19 @@ function hideNewPanelModal() {
 }
 
 function createNewPanel() {
-  const code = document.getElementById('newCurrencyCode').value.trim();
+  let code = document.getElementById('newCurrencyCode').value.trim();
   const issuer = document.getElementById('newIssuer').value.trim();
   const limit = parseInt(document.getElementById('newLimit').value);
   if (!code || limit <= 0) {
     showNotification('Invalid input', 'error');
     return;
   }
+  if (code.toUpperCase() === 'RLUSD') code = '524C555344000000000000000000000000000000';
   const panelId = 'custom' + Date.now();
   filters[panelId] = { currency: code, issuer: issuer || null, limit };
   localStorage.setItem('filters', JSON.stringify(filters));
   socket.emit('updateFilters', filters);
-  // Create panel div
-  const panel = document.createElement('div');
-  panel.className = 'panel';
-  panel.id = panelId + 'Panel';
-  panel.style.position = 'relative';
-  panel.innerHTML = `
-    <span class="edit-icon" data-panel="${panelId}" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
-    <div class="summary" onclick="togglePanel('${panelId}')">
-      <div>Currency: ${code}</div><div>Filter: >${limit}</div><div>Captured: <span id="${panelId}Count">0</span></div>
-    </div>
-    <div class="full" id="${panelId}Full" style="display: none;" onclick="togglePanel('${panelId}')">
-      <h1>${code} Large Transactions Dashboard</h1>
-      <p class="threshold">Monitoring transactions greater than ${limit} ${code}</p>
-      <table id="${panelId}Table" onclick="event.stopPropagation()">
-        <thead>
-          <tr>
-            <th>Ledger Number</th>
-            <th>Sender Account</th>
-            <th>Receiver Account</th>
-            <th>Amount (${code})</th>
-            <th>Timestamp</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  `;
-  document.querySelector('.panels-container').appendChild(panel);
-  // Add event listener for new edit icon
-  panel.querySelector('.edit-icon').addEventListener('click', (e) => {
-    editPanel(e.target.dataset.panel);
-  });
-  // Add transaction listener
-  addCustomTransactionListener(panelId);
+  createPanelFromFilter(panelId, filters[panelId]);
   hideNewPanelModal();
 }
 
@@ -509,12 +565,21 @@ function extractTxInfo(tx) {
   let amount = 'N/A';
   let currency = 'N/A';
 
-  if (json.Amount) {
+  // Prioritize delivered_amount for accuracy
+  if (meta.delivered_amount) {
+    if (typeof meta.delivered_amount === 'string') {
+      currency = 'XRP';
+      amount = (parseInt(meta.delivered_amount) / 1000000).toFixed(6);
+    } else if (meta.delivered_amount.currency) {
+      currency = getCurrencyDisplay(meta.delivered_amount.currency);
+      amount = meta.delivered_amount.value || 'N/A';
+    }
+  } else if (json.Amount) {
     if (typeof json.Amount === 'string') {
       currency = 'XRP';
       amount = (parseInt(json.Amount) / 1000000).toFixed(6);
     } else if (json.Amount.currency) {
-      currency = json.Amount.currency;
+      currency = getCurrencyDisplay(json.Amount.currency);
       amount = json.Amount.value || 'N/A';
     }
   } else if (json.TakerGets) {
@@ -523,18 +588,15 @@ function extractTxInfo(tx) {
       currency = 'XRP';
       amount = (parseInt(json.TakerGets) / 1000000).toFixed(6);
     } else if (json.TakerGets.currency) {
-      currency = json.TakerGets.currency;
+      currency = getCurrencyDisplay(json.TakerGets.currency);
       amount = json.TakerGets.value || 'N/A';
     }
-  } else if (meta.delivered_amount) {
-    // Actual delivered
-    if (typeof meta.delivered_amount === 'string') {
-      currency = 'XRP';
-      amount = (parseInt(meta.delivered_amount) / 1000000).toFixed(6);
-    } else if (meta.delivered_amount.currency) {
-      currency = meta.delivered_amount.currency;
-      amount = meta.delivered_amount.value || 'N/A';
-    }
+  }
+
+  // Handle special tx types
+  if (json.TransactionType === 'TrustSet' && json.LimitAmount) {
+    currency = getCurrencyDisplay(json.LimitAmount.currency);
+    amount = json.LimitAmount.value || 'N/A';
   }
 
   return {
