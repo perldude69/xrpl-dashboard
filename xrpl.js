@@ -22,6 +22,7 @@ function connectToXRPL(retryCount = 0) {
   }).catch((err) => {
     console.error(`Connection failed to ${servers[currentServerIndex]}:`, err);
     isConnected = false;
+    currentServerIndex = (currentServerIndex + 1) % servers.length;  // Cycle to next server
     if (retryCount < 10) {
       setTimeout(() => connectToXRPL(retryCount + 1), 5000);
     } else {
@@ -42,7 +43,7 @@ function processLedger(ledger, io, userData, filters) {
   }).then(async (ledgerData) => {
     const txHashes = ledgerData.result.ledger.transactions;
 
-    // Fetch full transactions
+    // Fetch full transactions with delay to avoid rate limits
     const fullTransactions = [];
     for (const hash of txHashes) {
       try {
@@ -51,6 +52,8 @@ function processLedger(ledger, io, userData, filters) {
       } catch (err) {
         console.error('Failed to fetch tx:', hash, err);
       }
+      // Add delay to reduce load
+      await new Promise(resolve => setTimeout(resolve, 100));  // 100ms delay
     }
     io.emit('ledgerTransactions', fullTransactions);
 
@@ -63,10 +66,24 @@ function processLedger(ledger, io, userData, filters) {
       const json = tx.tx_json;
       const meta = tx.meta;
       totalBurned += parseInt(json.Fee) || 0;
+
+      // Check for price updates from oracle
+      if (json.Account === ORACLE_ACCOUNT) {
+        const price = parsePriceFromTx(tx);
+        if (price) {
+          io.emit('latestPrice', price);
+        }
+      }
+
       if (json.TransactionType === 'Payment') {
+        xrpPayments++;  // Increment payment count
         // Check all filters
         let amt = json.Amount;
         if (!amt) amt = meta.delivered_amount;
+        if (typeof amt === 'string') {
+          const xrpAmount = parseInt(amt) / 1000000;
+          totalXRP += xrpAmount;  // Accumulate XRP amount
+        }
         for (const [key, f] of Object.entries(filters)) {
           let matches = false;
           let amount = 0;
@@ -127,15 +144,23 @@ function processLedger(ledger, io, userData, filters) {
   });
 }
 
-function backfillPrices() {
-  if (!module.exports.client || !isConnected) {
+async function backfillPrices() {
+  if (!isConnected) {
     console.log('XRPL client not connected, skipping backfill');
     return;
   }
-  fetchPricesRecursive(null, 0);
+  // Use a public server for historical data since rich-list.info has limited history
+  const publicClient = new (require('xrpl').Client)('wss://s1.ripple.com');
+  try {
+    await publicClient.connect();
+    console.log('Connected to public server for backfill');
+    fetchPricesRecursive(publicClient, null, 0);
+  } catch (err) {
+    console.error('Failed to connect to public server for backfill:', err);
+  }
 }
 
-function fetchPricesRecursive(marker, depth) {
+function fetchPricesRecursive(client, marker, depth) {
   const req = {
     command: 'account_tx',
     account: ORACLE_ACCOUNT,
@@ -143,14 +168,18 @@ function fetchPricesRecursive(marker, depth) {
     forward: false
   };
   if (marker) req.marker = marker;
-  module.exports.client.request(req).then((response) => {
+  client.request(req).then((response) => {
     const transactions = response.result.transactions;
     console.log(`Backfilling prices from ${transactions.length} oracle transactions (depth ${depth})`);
     let inserted = 0;
     for (const tx of transactions) {
       const price = parsePriceFromTx(tx);
       if (price) {
-        insertPrice(price, new Date(tx.close_time_human).toISOString(), tx.tx.ledger_index, (err) => {
+        let time = tx.close_time_iso || tx.close_time_human;
+        if (!time) {
+          time = new Date((tx.tx_json.date + 946684800) * 1000).toISOString();
+        }
+        insertPrice(price, time, tx.ledger_index, (err) => {
           if (err) console.error('Error inserting price:', err);
         });
         inserted++;
@@ -158,63 +187,47 @@ function fetchPricesRecursive(marker, depth) {
     }
     console.log(`Inserted ${inserted} prices`);
     if (response.result.marker && depth < 5) {  // Limit to 5 pages
-      setTimeout(() => fetchPricesRecursive(response.result.marker, depth + 1), 1000);  // Delay to avoid rate limits
+      setTimeout(() => fetchPricesRecursive(client, response.result.marker, depth + 1), 1000);  // Delay to avoid rate limits
     } else {
       console.log('Backfill completed');
+      client.disconnect().catch(console.error);  // Close the public connection after backfill
     }
   }).catch((err) => {
     console.error('Error backfilling prices:', err);
+    client.disconnect().catch(console.error);
   });
 }
 
 function parsePriceFromTx(tx) {
-  if (tx.tx.Memos) {
-    for (const memo of tx.tx.Memos) {
+  if (tx.tx_json.Memos) {
+    for (const memo of tx.tx_json.Memos) {
       const type = memo.Memo?.MemoType;
       const data = memo.Memo?.MemoData;
-      if (data && (type === '787061727469636C65' || type === '7072696365')) {  // 'xparticle' or 'price'
-        try {
-          const decoded = Buffer.from(data, 'hex').toString();
-          const price = parseFloat(decoded);
-          if (!isNaN(price) && price > 0) return price;
-        } catch (e) {
-          console.error('Error decoding memo:', e);
+      if (data) {
+        if (type === '787061727469636C65' || type === '7072696365') {  // 'xparticle' or 'price'
+          try {
+            const decoded = Buffer.from(data, 'hex').toString();
+            const price = parseFloat(decoded);
+            if (!isNaN(price) && price > 0) return price;
+          } catch (e) {
+            console.error('Error decoding memo:', e);
+          }
+        } else if (type && type.startsWith('72617465733A')) {  // 'rates:'
+          try {
+            const decoded = Buffer.from(data, 'hex').toString();
+            const prices = decoded.split(';').map(p => parseFloat(p)).filter(p => !isNaN(p) && p > 0);
+            if (prices.length > 0) {
+              // Take the first price as representative
+              return prices[0];
+            }
+          } catch (e) {
+            console.error('Error decoding rates memo:', e);
+          }
         }
       }
     }
   }
   return null;
-}
-  module.exports.client.request({
-    command: 'account_tx',
-    account: ORACLE_ACCOUNT,
-    limit: 50,
-    forward: false
-  }).then((response) => {
-    const transactions = response.result.transactions;
-    console.log(`Backfilling prices from ${transactions.length} oracle transactions`);
-    for (const tx of transactions) {
-      if (tx.tx.TransactionType === 'Payment' && tx.tx.Memos) {
-        for (const memo of tx.tx.Memos) {
-          if (memo.Memo.MemoType === '787061727469636C65' && memo.Memo.MemoData) {  // 'xparticle' in hex
-            try {
-              const price = parseFloat(Buffer.from(memo.Memo.MemoData, 'hex').toString());
-              if (!isNaN(price)) {
-                insertPrice(price, new Date(tx.close_time_human).toISOString(), tx.tx.ledger_index, (err) => {
-                  if (err) console.error('Error inserting price:', err);
-                });
-              }
-            } catch (e) {
-              console.error('Error parsing price memo:', e);
-            }
-          }
-        }
-      }
-    }
-    console.log('Backfill completed');
-  }).catch((err) => {
-    console.error('Error backfilling prices:', err);
-  });
 }
 
 module.exports = {

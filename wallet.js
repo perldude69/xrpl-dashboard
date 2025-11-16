@@ -11,7 +11,7 @@ function handleWalletConnections(io, userData) {
 
     socket.on('setWatchedAddresses', async (addresses) => {
       const { Client } = require('xrpl');
-      const client = new Client('wss://rich-list.info:5001/');
+      const client = new Client('wss://rich-list.info:6005/', { rejectUnauthorized: false });
       try {
         await client.connect();
         const balances = [];
@@ -28,7 +28,11 @@ function handleWalletConnections(io, userData) {
       } catch (err) {
         console.error('Wallet balance error:', err);
       } finally {
-        client.disconnect();
+        try {
+          await client.disconnect();  // Await the disconnect
+        } catch (disconnectErr) {
+          console.error('Disconnect error:', disconnectErr);
+        }
       }
     });
 
