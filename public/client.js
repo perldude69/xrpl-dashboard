@@ -552,7 +552,15 @@ function resetCapturedCount(panelId) {
   if (countSpan) countSpan.textContent = '0';
 
   // Clear transaction table
-  const tableBody = document.querySelector('#' + panelId + 'Table tbody');
+  let tableId;
+  if (panelId === 'xrp') {
+    tableId = 'transactions';
+  } else if (panelId === 'rlusd') {
+    tableId = 'rlusd';
+  } else {
+    tableId = panelId + 'Table';
+  }
+  const tableBody = document.querySelector('#' + tableId + ' tbody');
   if (tableBody) tableBody.innerHTML = '';
 }
 
