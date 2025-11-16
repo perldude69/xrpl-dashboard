@@ -50,7 +50,11 @@ function processLedger(ledger, io, userData, filters) {
         const txResponse = await module.exports.client.request({ command: 'tx', transaction: hash });
         fullTransactions.push(txResponse.result);
       } catch (err) {
-        console.error('Failed to fetch tx:', hash, err);
+        if (err.data?.error === 'notSynced') {
+          console.warn('Server not synced, skipping tx:', hash);
+        } else {
+          console.error('Failed to fetch tx:', hash, err);
+        }
       }
       // Add delay to reduce load
       await new Promise(resolve => setTimeout(resolve, 100));  // 100ms delay
