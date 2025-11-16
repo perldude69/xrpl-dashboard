@@ -1,0 +1,77 @@
+(node:1474696) Warning: Setting the NODE_TLS_REJECT_UNAUTHORIZED environment variable to '0' makes TLS connections and HTTPS requests insecure by disabling certificate verification.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Inserted price for 15-11-2025: 2.2488473348561304
+Error fetching price for 14-11-2025 Request failed with status code 429
+Error fetching price for 13-11-2025 Request failed with status code 429
+Error fetching price for 12-11-2025 Request failed with status code 429
+Error fetching price for 11-11-2025 Request failed with status code 429
+Error fetching price for 10-11-2025 Request failed with status code 429
+Error fetching price for 09-11-2025 Request failed with status code 429
+Error fetching price for 08-11-2025 Request failed with status code 429
+Error fetching price for 07-11-2025 Request failed with status code 429
+Error fetching price for 06-11-2025 Request failed with status code 429
+Error fetching price for 05-11-2025 Request failed with status code 429
+Error fetching price for 04-11-2025 Request failed with status code 429
+Error fetching price for 03-11-2025 Request failed with status code 429
+Error fetching price for 02-11-2025 Request failed with status code 429
+Error fetching price for 01-11-2025 Request failed with status code 429
+Error fetching price for 31-10-2025 Request failed with status code 429
+Error fetching price for 30-10-2025 Request failed with status code 429
+Error fetching price for 29-10-2025 Request failed with status code 429
+Error fetching price for 28-10-2025 Request failed with status code 429
+Error fetching price for 27-10-2025 Request failed with status code 429
+Error fetching price for 26-10-2025 Request failed with status code 429
+Error fetching price for 25-10-2025 Request failed with status code 429
+Error fetching price for 24-10-2025 Request failed with status code 429
+Error fetching price for 23-10-2025 Request failed with status code 429
+Error fetching price for 22-10-2025 Request failed with status code 429
+Error fetching price for 21-10-2025 Request failed with status code 429
+Error fetching price for 20-10-2025 Request failed with status code 429
+Error fetching price for 19-10-2025 Request failed with status code 429
+Error fetching price for 18-10-2025 Request failed with status code 429
+Inserted price for 17-10-2025: 2.3252186675017006
+Inserted price for 16-10-2025: 2.4107851679488945
+Insert error: Error: SQLITE_BUSY: database is locked
+--> in Statement#run([ 2.4107851679488945, '2025-10-16T18:48:33.191Z', 0 ], [Function: replacement])
+    at Database.<anonymous> (/home/jim/code/xrpldash/node_modules/sqlite3/lib/sqlite3.js:76:19)
+    at Database.<anonymous> (/home/jim/code/xrpldash/node_modules/sqlite3/lib/sqlite3.js:20:19)
+    at fetchHistoricalPrices (/home/jim/code/xrpldash/fetch_prices.js:18:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  errno: 5,
+  code: 'SQLITE_BUSY',
+  __augmented: true
+}
+Inserted price for 15-10-2025: 2.5061812994119887
+Insert error: Error: SQLITE_BUSY: database is locked
+--> in Statement#run([ 2.5061812994119887, '2025-10-15T18:48:33.191Z', 0 ], [Function: replacement])
+    at Database.<anonymous> (/home/jim/code/xrpldash/node_modules/sqlite3/lib/sqlite3.js:76:19)
+    at Database.<anonymous> (/home/jim/code/xrpldash/node_modules/sqlite3/lib/sqlite3.js:20:19)
+    at fetchHistoricalPrices (/home/jim/code/xrpldash/fetch_prices.js:18:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  errno: 5,
+  code: 'SQLITE_BUSY',
+  __augmented: true
+}
+Inserted price for 14-10-2025: 2.60498951616126
+Insert error: Error: SQLITE_BUSY: database is locked
+--> in Statement#run([ 2.60498951616126, '2025-10-14T18:48:33.191Z', 0 ], [Function: replacement])
+    at Database.<anonymous> (/home/jim/code/xrpldash/node_modules/sqlite3/lib/sqlite3.js:76:19)
+    at Database.<anonymous> (/home/jim/code/xrpldash/node_modules/sqlite3/lib/sqlite3.js:20:19)
+    at fetchHistoricalPrices (/home/jim/code/xrpldash/fetch_prices.js:18:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  errno: 5,
+  code: 'SQLITE_BUSY',
+  __augmented: true
+}
+Error fetching price for 13-10-2025 Request failed with status code 429
+Error fetching price for 12-10-2025 Request failed with status code 429
+Error fetching price for 11-10-2025 Request failed with status code 429
+Error fetching price for 10-10-2025 Request failed with status code 429
+Error fetching price for 09-10-2025 Request failed with status code 429
+Error fetching price for 08-10-2025 Request failed with status code 429
+Error fetching price for 07-10-2025 Request failed with status code 429
+Error fetching price for 06-10-2025 Request failed with status code 429
+Error fetching price for 05-10-2025 Request failed with status code 429
+Error fetching price for 04-10-2025 Request failed with status code 429
+Error fetching price for 03-10-2025 Request failed with status code 429
+Error fetching price for 02-10-2025 Request failed with status code 429

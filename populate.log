@@ -1,0 +1,109 @@
+(node:1472601) Warning: Setting the NODE_TLS_REJECT_UNAUTHORIZED environment variable to '0' makes TLS connections and HTTPS requests insecure by disabling certificate verification.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Connected to XRPL
+Processed 400 transactions, total inserted: 0
+Processed 400 transactions, total inserted: 397
+Processed 400 transactions, total inserted: 797
+Processed 400 transactions, total inserted: 1200
+Processed 400 transactions, total inserted: 1597
+Processed 400 transactions, total inserted: 2000
+Processed 400 transactions, total inserted: 2397
+Processed 400 transactions, total inserted: 2797
+Processed 400 transactions, total inserted: 3197
+Processed 400 transactions, total inserted: 3597
+Processed 400 transactions, total inserted: 3997
+Processed 400 transactions, total inserted: 4397
+Processed 400 transactions, total inserted: 4797
+Processed 400 transactions, total inserted: 5197
+Processed 400 transactions, total inserted: 5597
+Processed 400 transactions, total inserted: 5997
+Processed 400 transactions, total inserted: 6397
+Processed 400 transactions, total inserted: 6797
+Processed 400 transactions, total inserted: 7197
+Processed 400 transactions, total inserted: 7597
+Processed 400 transactions, total inserted: 7997
+Processed 400 transactions, total inserted: 8397
+Processed 400 transactions, total inserted: 8797
+Processed 400 transactions, total inserted: 9197
+Processed 400 transactions, total inserted: 9597
+Processed 400 transactions, total inserted: 9997
+Processed 400 transactions, total inserted: 10400
+Processed 400 transactions, total inserted: 10797
+Processed 400 transactions, total inserted: 11197
+Processed 400 transactions, total inserted: 11600
+Processed 400 transactions, total inserted: 11997
+Processed 400 transactions, total inserted: 12400
+Processed 400 transactions, total inserted: 12797
+Processed 400 transactions, total inserted: 13197
+Processed 400 transactions, total inserted: 13597
+Processed 400 transactions, total inserted: 13997
+Processed 400 transactions, total inserted: 14397
+Processed 400 transactions, total inserted: 14797
+Processed 400 transactions, total inserted: 15197
+Processed 400 transactions, total inserted: 15600
+Processed 400 transactions, total inserted: 15997
+Processed 400 transactions, total inserted: 16229
+Processed 400 transactions, total inserted: 16797
+Processed 400 transactions, total inserted: 17197
+Processed 400 transactions, total inserted: 17597
+Processed 400 transactions, total inserted: 17997
+Processed 400 transactions, total inserted: 18397
+Processed 400 transactions, total inserted: 18797
+Processed 400 transactions, total inserted: 19197
+Processed 400 transactions, total inserted: 19597
+Processed 400 transactions, total inserted: 19997
+Processed 400 transactions, total inserted: 20397
+Processed 400 transactions, total inserted: 20797
+Processed 400 transactions, total inserted: 21197
+Processed 400 transactions, total inserted: 21596
+Processed 400 transactions, total inserted: 21996
+Processed 400 transactions, total inserted: 22396
+Processed 400 transactions, total inserted: 22796
+Processed 400 transactions, total inserted: 23196
+Processed 400 transactions, total inserted: 23598
+Processed 400 transactions, total inserted: 23799
+Processed 400 transactions, total inserted: 24395
+Processed 400 transactions, total inserted: 24795
+Processed 400 transactions, total inserted: 25195
+Processed 400 transactions, total inserted: 25595
+Processed 400 transactions, total inserted: 25995
+Processed 400 transactions, total inserted: 26395
+Processed 400 transactions, total inserted: 26795
+Processed 400 transactions, total inserted: 27195
+Processed 400 transactions, total inserted: 27595
+Processed 400 transactions, total inserted: 27995
+Processed 400 transactions, total inserted: 28395
+Processed 400 transactions, total inserted: 28795
+Processed 400 transactions, total inserted: 29195
+Processed 400 transactions, total inserted: 29595
+Error fetching transactions: TimeoutError: Timeout for request: {"command":"account_tx","account":"rXUMMaPpZqPutoRszR29jtC8amWq3APkx","limit":400,"forward":false,"marker":{"ledger":99722300,"seq":34},"api_version":2} with id 84
+    at Timeout.<anonymous> (/home/jim/code/xrpldash/node_modules/xrpl/dist/npm/client/RequestManager.js:70:32)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7) {
+  data: {
+    command: 'account_tx',
+    account: 'rXUMMaPpZqPutoRszR29jtC8amWq3APkx',
+    limit: 400,
+    forward: false,
+    marker: { ledger: 99722300, seq: 34 },
+    api_version: 2
+  }
+}
+Finished populating DB with 29599 entries
+(node:1474424) Warning: Setting the NODE_TLS_REJECT_UNAUTHORIZED environment variable to '0' makes TLS connections and HTTPS requests insecure by disabling certificate verification.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Connected to XRPL
+Error fetching transactions: TimeoutError: Timeout for request: {"command":"account_tx","account":"rXUMMaPpZqPutoRszR29jtC8amWq3APkx","limit":400,"forward":false,"marker":{"ledger":99722300,"seq":34},"api_version":2} with id 1
+    at Timeout.<anonymous> (/home/jim/code/xrpldash/node_modules/xrpl/dist/npm/client/RequestManager.js:70:32)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7) {
+  data: {
+    command: 'account_tx',
+    account: 'rXUMMaPpZqPutoRszR29jtC8amWq3APkx',
+    limit: 400,
+    forward: false,
+    marker: { ledger: 99722300, seq: 34 },
+    api_version: 2
+  }
+}
+Finished populating DB with 0 entries
