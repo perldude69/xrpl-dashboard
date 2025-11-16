@@ -52,6 +52,8 @@ function processLedger(ledger, io, userData, filters) {
       } catch (err) {
         if (err.data?.error === 'notSynced') {
           console.warn('Server not synced, skipping tx:', hash);
+        } else if (err.data?.error === 'slowDown') {
+          console.warn('Server rate limit hit, skipping tx:', hash);
         } else {
           console.error('Failed to fetch tx:', hash, err);
         }
