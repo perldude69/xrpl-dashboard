@@ -463,20 +463,20 @@ function editPanel(panelType) {
     });
    } else if (panelType === 'xrp') {
      content.innerHTML = '<label>Limit: <input id="editXrpLimit" type="number" value="' + (filters.xrp?.limit || 10000000) + '"></label><br><button id="saveXrp">Save</button>';
-     document.getElementById('saveXrp').addEventListener('click', () => {
-       const limitValue = document.getElementById('editXrpLimit').value;
-       const error = validatePositiveNumber(limitValue, 'Limit');
-       if (error) {
-         document.getElementById('editError').textContent = error;
-         return; // Do not close or save
-       }
-       filters.xrp.limit = parseInt(limitValue);
-       localStorage.setItem('filters', JSON.stringify(filters));
-       socket.emit('updateFilters', filters);
-       // Update summary
-       document.querySelector('#xrpPanel .summary div:nth-child(2)').textContent = 'Filter: >' + filters.xrp.limit;
-       hideEditModal();
-      });
+      document.getElementById('saveXrp').addEventListener('click', () => {
+        const limitValue = document.getElementById('editXrpLimit').value;
+        const error = validatePositiveNumber(limitValue, 'Limit');
+        if (error) {
+          document.getElementById('editError').textContent = error;
+          return; // Do not close or save
+        }
+        filters.xrp.limit = parseInt(limitValue);
+        localStorage.setItem('filters', JSON.stringify(filters));
+        socket.emit('updateFilters', filters);
+        // Update summary
+        document.querySelector('#xrpPanel .summary div:nth-child(2)').textContent = 'Filter: >' + filters.xrp.limit;
+        hideEditModal();
+      }, { once: true });
     } else if (panelType === 'rlusd') {
       content.innerHTML = '<label>Currency: <input id="editRlusdCurrency" value="' + (filters.rlusd?.currency || 'RLUSD') + '"></label><br><label>Issuer: <input id="editRlusdIssuer" value="' + (filters.rlusd?.issuer || '') + '"></label><br><label>Limit: <input id="editRlusdLimit" type="number" value="' + (filters.rlusd?.limit || 10) + '"></label><br><button id="saveRlusd">Save</button>';
       document.getElementById('saveRlusd').addEventListener('click', () => {
@@ -496,7 +496,7 @@ function editPanel(panelType) {
         document.querySelector('#rlusdPanel .summary div:nth-child(1)').textContent = 'Currency: ' + displayCurrency;
         document.querySelector('#rlusdPanel .summary div:nth-child(2)').textContent = 'Filter: >' + filters.rlusd.limit;
         hideEditModal();
-      });
+      }, { once: true });
     } else {
       // Custom panels
       const f = filters[panelType];
@@ -518,7 +518,7 @@ function editPanel(panelType) {
         document.querySelector('#' + panelType + 'Panel .summary div:nth-child(1)').textContent = 'Currency: ' + displayCurrency;
         document.querySelector('#' + panelType + 'Panel .summary div:nth-child(2)').textContent = 'Filter: >' + filters[panelType].limit;
         hideEditModal();
-      });
+      }, { once: true });
     }
    document.getElementById('editModal').style.display = 'block';
    document.getElementById('modalOverlay').style.display = 'block';
