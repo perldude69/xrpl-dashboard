@@ -462,63 +462,13 @@ function editPanel(panelType) {
       hideEditModal();
     });
    } else if (panelType === 'xrp') {
-     content.innerHTML = '<label>Limit: <input id="editXrpLimit" type="number" value="' + (filters.xrp?.limit || 10000000) + '"></label><br><button id="saveXrp">Save</button>';
-      document.getElementById('saveXrp').addEventListener('click', () => {
-        const limitValue = document.getElementById('editXrpLimit').value;
-        const error = validatePositiveNumber(limitValue, 'Limit');
-        if (error) {
-          document.getElementById('editError').textContent = error;
-          return; // Do not close or save
-        }
-        filters.xrp.limit = parseInt(limitValue);
-        localStorage.setItem('filters', JSON.stringify(filters));
-        socket.emit('updateFilters', filters);
-        // Update summary
-        document.querySelector('#xrpPanel .summary div:nth-child(2)').textContent = 'Filter: >' + filters.xrp.limit;
-        hideEditModal();
-      }, { once: true });
+      content.innerHTML = '<label>Limit: <input id="editXrpLimit" type="number" value="' + (filters.xrp?.limit || 10000000) + '"></label><br><button id="saveXrp">Save</button>';
     } else if (panelType === 'rlusd') {
       content.innerHTML = '<label>Currency: <input id="editRlusdCurrency" value="' + (filters.rlusd?.currency || 'RLUSD') + '"></label><br><label>Issuer: <input id="editRlusdIssuer" value="' + (filters.rlusd?.issuer || '') + '"></label><br><label>Limit: <input id="editRlusdLimit" type="number" value="' + (filters.rlusd?.limit || 10) + '"></label><br><button id="saveRlusd">Save</button>';
-      document.getElementById('saveRlusd').addEventListener('click', () => {
-        const limitValue = document.getElementById('editRlusdLimit').value;
-        const limitError = validatePositiveNumber(limitValue, 'Limit');
-        if (limitError) {
-          document.getElementById('editError').textContent = limitError;
-          return;
-        }
-        filters.rlusd.currency = document.getElementById('editRlusdCurrency').value;
-        filters.rlusd.issuer = document.getElementById('editRlusdIssuer').value;
-        filters.rlusd.limit = parseInt(limitValue);
-        localStorage.setItem('filters', JSON.stringify(filters));
-        socket.emit('updateFilters', filters);
-        // Update summary
-        const displayCurrency = getCurrencyDisplay(filters.rlusd.currency);
-        document.querySelector('#rlusdPanel .summary div:nth-child(1)').textContent = 'Currency: ' + displayCurrency;
-        document.querySelector('#rlusdPanel .summary div:nth-child(2)').textContent = 'Filter: >' + filters.rlusd.limit;
-        hideEditModal();
-      }, { once: true });
     } else {
       // Custom panels
       const f = filters[panelType];
       content.innerHTML = '<label>Currency: <input id="editCustomCurrency" value="' + (f?.currency || '') + '"></label><br><label>Issuer: <input id="editCustomIssuer" value="' + (f?.issuer || '') + '"></label><br><label>Limit: <input id="editCustomLimit" type="number" value="' + (f?.limit || 0) + '"></label><br><button id="saveCustom">Save</button>';
-      document.getElementById('saveCustom').addEventListener('click', () => {
-        const limitValue = document.getElementById('editCustomLimit').value;
-        const limitError = validatePositiveNumber(limitValue, 'Limit');
-        if (limitError) {
-          document.getElementById('editError').textContent = limitError;
-          return;
-        }
-        filters[panelType].currency = document.getElementById('editCustomCurrency').value;
-        filters[panelType].issuer = document.getElementById('editCustomIssuer').value;
-        filters[panelType].limit = parseInt(limitValue);
-        localStorage.setItem('filters', JSON.stringify(filters));
-        socket.emit('updateFilters', filters);
-        // Update summary
-        const displayCurrency = getCurrencyDisplay(filters[panelType].currency);
-        document.querySelector('#' + panelType + 'Panel .summary div:nth-child(1)').textContent = 'Currency: ' + displayCurrency;
-        document.querySelector('#' + panelType + 'Panel .summary div:nth-child(2)').textContent = 'Filter: >' + filters[panelType].limit;
-        hideEditModal();
-      }, { once: true });
     }
    document.getElementById('editModal').style.display = 'block';
    document.getElementById('modalOverlay').style.display = 'block';
