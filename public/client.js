@@ -32,8 +32,8 @@ function renderWalletList() {
     table.style.borderCollapse = 'collapse';
     const thead = document.createElement('thead');
     thead.innerHTML = `
-      <tr>
-        <th style="padding: 5px;">Alert</th>
+      <tr style="color: #00ff00;">
+        <th style="padding: 5px;"></th>
         <th style="padding: 5px;">Nickname</th>
         <th style="padding: 5px;">Address</th>
       </tr>
@@ -58,13 +58,14 @@ function renderWalletList() {
     const table = document.createElement('table');
     table.className = 'no-border';
     table.style.width = 'auto';
-    table.style.maxWidth = '500px';
+    table.style.maxWidth = '600px';
     table.style.borderCollapse = 'collapse';
     const thead = document.createElement('thead');
     thead.innerHTML = `
-      <tr style="background: #ff6600; color: #000;">
+      <tr style="color: #00ff00;">
         <th style="padding: 5px;">Wallet</th>
         <th style="padding: 5px;">Balance</th>
+        <th style="padding: 5px;"></th>
       </tr>
     `;
     table.appendChild(thead);
@@ -76,10 +77,12 @@ function renderWalletList() {
       const nickname = walletData.nicknames[i] || '';
       const displayName = nickname || addr;
       if (displayName) {
+        const alertIcon = walletData.alerts[i] ? '&#9888;' : '';
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td style="padding: 5px;">${displayName}</td>
           <td style="padding: 5px;" id="balance${i}"></td>
+          <td style="padding: 5px; color: yellow; font-size: 20px; text-align: center;">${alertIcon}</td>
         `;
         tbody.appendChild(tr);
       }
