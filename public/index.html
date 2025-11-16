@@ -24,6 +24,11 @@
         .full { position: fixed; top: 10%; left: 10%; width: 80%; height: 80%; background: #000; z-index: 1000; padding: 20px; overflow: auto; border: 2px solid #ff6600; border-radius: 10px; color: #00ff00; }
         .panels-container { display: flex; flex-direction: row; gap: 20px; justify-content: flex-start; }
         .full { position: fixed; top: 10%; left: 10%; width: 80%; height: 80%; background: white; z-index: 1000; padding: 20px; overflow: auto; border: 2px solid #007bff; border-radius: 10px; }
+        .notification { background: #ff6600; color: #000; padding: 10px; margin-bottom: 5px; border-radius: 5px; opacity: 0; transition: opacity 0.5s; }
+        .notification.show { opacity: 1; }
+        .notification.error { background: #ff0000; }
+        .no-border th, .no-border td { border: none; }
+        .no-border th { background-color: transparent; color: #00ff00; }
     </style>
 </head>
 <body>
@@ -32,7 +37,7 @@
         <span style="width: 80px; padding: 2px;">Transactions: <span id="txCount"></span></span>
         <span style="width: 90px; padding: 2px;">XRP Payments: <span id="xrpPayments"></span></span>
         <span style="width: 90px; padding: 2px;">XRP Burned: <span id="xrpBurned"></span></span>
-        <span style="width: 70px; padding: 2px;" id="connectionStatus">Disconnected</span>
+         <button id="inspectLedger" style="background: #000; color: #00ff00; border: 1px solid #ff6600; padding: 2px 5px; cursor: pointer;">Inspect Ledger</button>
         <button id="exportData">Export Data JSON</button>
         <input type="file" id="importData" accept=".json" style="display: none;">
         <button id="importBtn">Import Data JSON</button>
@@ -118,12 +123,18 @@
     <div class="panel">
         <h1>Wallet Activity Alerts</h1>
         <p class="threshold">Monitoring activity for up to 10 entered XRP addresses</p>
-        <div id="walletPanel">
+        <div id="walletPanel" style="border: 2px solid #ff6600; border-radius: 10px; padding: 10px; width: auto; display: inline-block;">
             <label><input type="checkbox" id="editMode"> Edit</label><br><br>
             <div id="walletList">
                 <!-- Wallets will be dynamically generated -->
             </div>
         </div>
+    </div>
+    <div id="notifications" style="position: fixed; top: 70px; right: 20px; z-index: 1001;"></div>
+    <div id="ledgerOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); z-index: 2000; color: #00ff00; font-family: 'Courier New', monospace; font-size: 12px; padding: 20px; overflow: auto;">
+        <button id="closeOverlay" style="position: absolute; top: 10px; right: 50px; background: #000; color: #ff6600; border: 1px solid #ff6600; font-size: 20px; cursor: pointer;">×</button>
+        <h2>Ledger Transactions</h2>
+        <div id="ledgerTxList"></div>
     </div>
     <script src="/socket.io/socket.io.js?v=1"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

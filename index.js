@@ -20,7 +20,6 @@ const userData = {};
 handleWalletConnections(io, userData);
 
 io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
   socket.emit('test', 'hello');
 
   socket.on('getLatestPrice', () => {
@@ -42,9 +41,7 @@ io.on('connection', (socket) => {
 
 xrpl.connectToXRPL();
 
-console.log('xrpl.client after connect:', xrpl.client);
 xrpl.client.on('ledgerClosed', (ledger) => {
-  console.log('Ledger closed event received for ledger', ledger.ledger_index);
   xrpl.processLedger(ledger, io, userData);
 });
 

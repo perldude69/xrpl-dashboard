@@ -1,18 +1,11 @@
-console.log('Script starting');
-console.log('io object:', io);
 const socket = io();
-console.log('Socket created:', socket);
 socket.on('connect', () => {
-  console.log('Socket connected, id:', socket.id);
 });
 socket.on('disconnect', () => {
-  console.log('Socket disconnected');
 });
 socket.on('connect_error', (err) => {
-  console.log('Socket connect error:', err);
 });
 socket.on('test', (msg) => {
-  console.log('Test received:', msg);
 });
 
 const tableBody = document.querySelector('#transactions tbody');
@@ -20,6 +13,7 @@ const rlusdBody = document.querySelector('#rlusd tbody');
 
 let walletData = JSON.parse(localStorage.getItem('walletData') || '{"addresses":[],"nicknames":{},"alerts":{}}');
 let priceChart;
+let currentLedgerTxs = [];
 
 function saveWalletData() {
   localStorage.setItem('walletData', JSON.stringify(walletData));
@@ -32,16 +26,16 @@ function renderWalletList() {
 
   if (isEdit) {
     const table = document.createElement('table');
-    table.style.width = '100%';
+    table.className = 'no-border';
+    table.style.width = 'auto';
+    table.style.maxWidth = '500px';
     table.style.borderCollapse = 'collapse';
-    table.style.border = '1px solid #ff6600';
     const thead = document.createElement('thead');
     thead.innerHTML = `
-      <tr style="background: #ff6600; color: #000;">
-        <th style="border: 1px solid #000; padding: 5px;">Alert</th>
-        <th style="border: 1px solid #000; padding: 5px;">Nickname</th>
-        <th style="border: 1px solid #000; padding: 5px;">Address</th>
-        <th style="border: 1px solid #000; padding: 5px;">Balance</th>
+      <tr>
+        <th style="padding: 5px;">Alert</th>
+        <th style="padding: 5px;">Nickname</th>
+        <th style="padding: 5px;">Address</th>
       </tr>
     `;
     table.appendChild(thead);
@@ -54,22 +48,23 @@ function renderWalletList() {
       const alertEnabled = walletData.alerts[i] !== false;
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td style="border: 1px solid #ff6600; padding: 5px; text-align: center;"><input type="checkbox" id="alert${i}" ${alertEnabled ? 'checked' : ''}></td>
-        <td style="border: 1px solid #ff6600; padding: 5px;"><input type="text" class="wallet-input" id="nickname${i}" placeholder="Nickname" value="${nickname}" style="width: 100%;"></td>
-        <td style="border: 1px solid #ff6600; padding: 5px;"><input type="text" class="wallet-input" id="addr${i}" placeholder="Address ${i + 1}" value="${addr}" style="width: 100%;"></td>
-        <td style="border: 1px solid #ff6600; padding: 5px;" id="balance${i}"></td>
+        <td style="padding: 5px; text-align: center;"><input type="checkbox" id="alert${i}" ${alertEnabled ? 'checked' : ''}></td>
+        <td style="padding: 5px;"><input type="text" class="wallet-input" id="nickname${i}" placeholder="Nickname" value="${nickname}" style="min-width: 100px;"></td>
+        <td style="padding: 5px;"><input type="text" class="wallet-input" id="addr${i}" placeholder="Address ${i + 1}" value="${addr}" style="min-width: 250px;"></td>
       `;
       tbody.appendChild(tr);
     }
   } else {
     const table = document.createElement('table');
-    table.style.width = '100%';
+    table.className = 'no-border';
+    table.style.width = 'auto';
+    table.style.maxWidth = '500px';
     table.style.borderCollapse = 'collapse';
     const thead = document.createElement('thead');
     thead.innerHTML = `
       <tr style="background: #ff6600; color: #000;">
-        <th style="border: 1px solid #000; padding: 5px;">Wallet</th>
-        <th style="border: 1px solid #000; padding: 5px;">Balance</th>
+        <th style="padding: 5px;">Wallet</th>
+        <th style="padding: 5px;">Balance</th>
       </tr>
     `;
     table.appendChild(thead);
@@ -83,8 +78,8 @@ function renderWalletList() {
       if (displayName) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td style="border: 1px solid #ff6600; padding: 5px;">${displayName}</td>
-          <td style="border: 1px solid #ff6600; padding: 5px;" id="balance${i}"></td>
+          <td style="padding: 5px;">${displayName}</td>
+          <td style="padding: 5px;" id="balance${i}"></td>
         `;
         tbody.appendChild(tr);
       }
@@ -104,13 +99,14 @@ function saveWallets() {
     }
   }
   saveWalletData();
+  socket.emit('updateWalletData', walletData);
   socket.emit('setWatchedAddresses', walletData.addresses);
   renderWalletList();
 }
 
 window.addEventListener('load', () => {
-  console.log('Edit mode element:', document.getElementById('editMode'));
   renderWalletList();
+  socket.emit('updateWalletData', walletData);
   if (walletData.addresses.length) socket.emit('setWatchedAddresses', walletData.addresses);
   loadGraphData();
   setInterval(() => {
@@ -119,7 +115,6 @@ window.addEventListener('load', () => {
 
   document.getElementById('editMode').addEventListener('change', () => {
     const isEdit = document.getElementById('editMode').checked;
-    console.log('Edit mode changed to:', isEdit);
     if (!isEdit) {
       saveWallets();
     } else {
@@ -135,9 +130,7 @@ function loadGraphData() {
 }
 
 socket.on('ledgerInfo', (info) => {
-  console.log('Received ledgerInfo:', info);
   const ledgerEl = document.getElementById('ledgerNum');
-  console.log('ledgerNum element:', ledgerEl);
   if (ledgerEl) {
     ledgerEl.textContent = info.ledger;
     document.getElementById('txCount').textContent = info.txCount;
@@ -146,8 +139,8 @@ socket.on('ledgerInfo', (info) => {
   }
 });
 
-socket.on('connectionStatus', (status) => {
-  document.getElementById('connectionStatus').textContent = status;
+socket.on('ledgerTransactions', (txs) => {
+  currentLedgerTxs = txs;
 });
 
 socket.on('graphData', (data) => {
@@ -198,7 +191,7 @@ socket.on('balances', (balances) => {
 });
 
 socket.on('walletActivity', (data) => {
-  alert(`Wallet activity detected in ledger ${data.ledger}: ${data.account} -> ${data.destination}`);
+  showNotification(`Wallet activity detected in ledger ${data.ledger}: ${data.account} -> ${data.destination}`, 'info');
 });
 
 socket.on('walletData', (data) => {
@@ -259,6 +252,19 @@ function updateGraphSummary(latestPrice) {
   `;
 }
 
+function showNotification(message, type = 'info') {
+  const notifications = document.getElementById('notifications');
+  const note = document.createElement('div');
+  note.className = `notification ${type}`;
+  note.textContent = message;
+  notifications.appendChild(note);
+  setTimeout(() => note.classList.add('show'), 10);
+  setTimeout(() => {
+    note.classList.remove('show');
+    setTimeout(() => notifications.removeChild(note), 500);
+  }, 5000);
+}
+
 document.getElementById('exportData').addEventListener('click', () => {
   socket.emit('exportData');
 });
@@ -287,7 +293,7 @@ document.getElementById('importData').addEventListener('change', (event) => {
         const data = JSON.parse(e.target.result);
         socket.emit('importData', data);
       } catch (err) {
-        alert('Invalid JSON file.');
+        showNotification('Invalid JSON file.', 'error');
       }
     };
     reader.readAsText(file);
@@ -302,3 +308,94 @@ function togglePanel(id) {
 document.getElementById('refreshGraph').addEventListener('click', loadGraphData);
 document.getElementById('periodSelect').addEventListener('change', loadGraphData);
 document.getElementById('intervalSelect').addEventListener('change', loadGraphData);
+
+document.getElementById('inspectLedger').addEventListener('click', () => {
+  populateLedgerOverlay();
+  document.getElementById('ledgerOverlay').style.display = 'block';
+});
+
+document.getElementById('closeOverlay').addEventListener('click', () => {
+  document.getElementById('ledgerOverlay').style.display = 'none';
+});
+
+function extractTxInfo(tx) {
+  const json = tx.tx_json || {};
+  const meta = tx.meta || {};
+  let amount = 'N/A';
+  let currency = 'N/A';
+
+  if (json.Amount) {
+    if (typeof json.Amount === 'string') {
+      currency = 'XRP';
+      amount = (parseInt(json.Amount) / 1000000).toFixed(6);
+    } else if (json.Amount.currency) {
+      currency = json.Amount.currency;
+      amount = json.Amount.value || 'N/A';
+    }
+  } else if (json.TakerGets) {
+    // For offers
+    if (typeof json.TakerGets === 'string') {
+      currency = 'XRP';
+      amount = (parseInt(json.TakerGets) / 1000000).toFixed(6);
+    } else if (json.TakerGets.currency) {
+      currency = json.TakerGets.currency;
+      amount = json.TakerGets.value || 'N/A';
+    }
+  } else if (meta.delivered_amount) {
+    // Actual delivered
+    if (typeof meta.delivered_amount === 'string') {
+      currency = 'XRP';
+      amount = (parseInt(meta.delivered_amount) / 1000000).toFixed(6);
+    } else if (meta.delivered_amount.currency) {
+      currency = meta.delivered_amount.currency;
+      amount = meta.delivered_amount.value || 'N/A';
+    }
+  }
+
+  return {
+    from: json.Account || 'N/A',
+    to: json.Destination || 'N/A',
+    type: json.TransactionType || 'N/A',
+    currency,
+    amount,
+    hash: tx.hash || 'N/A'
+  };
+}
+
+function populateLedgerOverlay() {
+  const list = document.getElementById('ledgerTxList');
+  list.innerHTML = '';
+  if (currentLedgerTxs.length === 0) {
+    list.innerHTML = '<p>No transactions in current ledger.</p>';
+    return;
+  }
+  const table = document.createElement('table');
+  table.style.width = '85%';
+  table.style.borderCollapse = 'collapse';
+  table.innerHTML = `
+    <thead>
+      <tr style="background: #ff6600; color: #000;">
+        <th style="border: 1px solid #000; padding: 5px;">From</th>
+        <th style="border: 1px solid #000; padding: 5px;">To</th>
+        <th style="border: 1px solid #000; padding: 5px;">Transaction Type</th>
+        <th style="border: 1px solid #000; padding: 5px;">Currency Code</th>
+        <th style="border: 1px solid #000; padding: 5px;">Amount</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
+  const tbody = table.querySelector('tbody');
+  currentLedgerTxs.forEach(tx => {
+    const info = extractTxInfo(tx);
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td style="border: 1px solid #ff6600; padding: 5px; min-width: 150px;">&nbsp;${info.from}&nbsp;</td>
+      <td style="border: 1px solid #ff6600; padding: 5px; min-width: 150px;">&nbsp;${info.to}&nbsp;</td>
+      <td style="border: 1px solid #ff6600; padding: 5px;">&nbsp;${info.type}&nbsp;</td>
+      <td style="border: 1px solid #ff6600; padding: 5px;">&nbsp;${info.currency}&nbsp;</td>
+      <td style="border: 1px solid #ff6600; padding: 5px;">&nbsp;${info.amount}&nbsp;</td>
+    `;
+    tbody.appendChild(row);
+  });
+  list.appendChild(table);
+}

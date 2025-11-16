@@ -1,14 +1,17 @@
 function handleWalletConnections(io, userData) {
   io.on('connection', (socket) => {
     userData[socket.id] = { addresses: [], nicknames: {}, alerts: {} };
-    socket.emit('connectionStatus', 'Connected');
     socket.on('disconnect', () => {
       delete userData[socket.id];
     });
 
+    socket.on('updateWalletData', (data) => {
+      userData[socket.id] = data;
+    });
+
     socket.on('setWatchedAddresses', async (addresses) => {
       const { Client } = require('xrpl');
-      const client = new Client('wss://s1.ripple.com');
+      const client = new Client('wss://rich-list.info:5001/');
       try {
         await client.connect();
         const balances = [];

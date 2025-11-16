@@ -13,11 +13,9 @@ function connectToXRPL(retryCount = 0) {
   }
   const client = module.exports.client;
   client.connect().then(() => {
-    console.log(`Connected to XRPL at ${servers[currentServerIndex]}`);
     isConnected = true;
-    client.on('disconnected', () => console.log('XRPL client disconnected'));
+    client.on('disconnected', () => {});
     client.request({ command: 'subscribe', streams: ['ledger'] }).then(() => {
-      console.log('Subscribed to ledger stream');
     }).catch(console.error);
   }).catch((err) => {
     console.error(`Connection failed to ${servers[currentServerIndex]}:`, err);
@@ -34,21 +32,31 @@ function connectToXRPL(retryCount = 0) {
 }
 
 function processLedger(ledger, io, userData) {
-  console.log(`Processing ledger: ${ledger.ledger_index}`);
   module.exports.client.request({
     command: 'ledger',
     ledger_index: ledger.ledger_index,
     transactions: true
-  }).then((ledgerData) => {
-    const transactions = ledgerData.result.ledger.transactions;
-    console.log(`Total transactions in ledger ${ledger.ledger_index}: ${transactions.length}`);
+  }).then(async (ledgerData) => {
+    const txHashes = ledgerData.result.ledger.transactions;
 
-    let txCount = transactions.length;
+    // Fetch full transactions
+    const fullTransactions = [];
+    for (const hash of txHashes) {
+      try {
+        const txResponse = await module.exports.client.request({ command: 'tx', transaction: hash });
+        fullTransactions.push(txResponse.result);
+      } catch (err) {
+        console.error('Failed to fetch tx:', hash, err);
+      }
+    }
+    io.emit('ledgerTransactions', fullTransactions);
+
+    let txCount = fullTransactions.length;
     let xrpPayments = 0;
     let totalXRP = 0;
     let totalBurned = 0;
 
-    for (const tx of transactions) {
+    for (const tx of fullTransactions) {
       totalBurned += parseInt(tx.Fee) || 0;
       if (tx.TransactionType === 'Payment') {
         let amountDrops = 0;
@@ -71,11 +79,24 @@ function processLedger(ledger, io, userData) {
             timestamp: new Date().toISOString()
           });
         }
+        // Check for RLUSD payments
+        if (typeof tx.Amount === 'object' && tx.Amount.currency === RLUSD_CURRENCY && tx.Amount.issuer === RLUSD_ISSUER) {
+          const amountRLUSD = parseFloat(tx.Amount.value);
+          if (amountRLUSD > 10) {
+            io.emit('newRLUSDTransaction', {
+              ledger: ledger.ledger_index,
+              sender: tx.Account,
+              receiver: tx.Destination,
+              amount: amountRLUSD,
+              timestamp: new Date().toISOString()
+            });
+          }
+        }
       }
     }
 
     for (const [socketId, data] of Object.entries(userData)) {
-      for (const tx of transactions) {
+      for (const tx of fullTransactions) {
         if (data.addresses.includes(tx.Account) || data.addresses.includes(tx.Destination)) {
           data.socket.emit('walletActivity', {
             ledger: ledger.ledger_index,
@@ -89,7 +110,6 @@ function processLedger(ledger, io, userData) {
 
     // Emit ledger info
     const totalBurnedXRP = totalBurned * 1e-6;
-    console.log('Emitting ledgerInfo to', io.sockets.sockets.size, 'clients:', { ledger: ledger.ledger_index, txCount, xrpPayments, totalXRP, totalBurned: totalBurnedXRP });
     io.emit('ledgerInfo', {
       ledger: ledger.ledger_index,
       txCount,
@@ -104,7 +124,6 @@ function processLedger(ledger, io, userData) {
 
 function backfillPrices() {
   // Simplified backfill, can be expanded
-  console.log('Backfill completed');
 }
 
 module.exports = {
