@@ -48,9 +48,8 @@
     <div class="panels-container">
         <div class="panel" id="xrpPanel">
             <div class="summary" onclick="togglePanel('xrp')" style="position: relative;">
-                <span class="edit-icon" data-panel="xrp" style="float: right; margin-left: 10px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
+                <span class="edit-icon" data-panel="xrp" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
                 <div>Currency: XRP</div><div>Filter: >10,000,000</div><div>Captured: <span id="xrpCount">0</span></div>
-                <span class="reset-icon" data-panel="xrp" style="position: absolute; bottom: 5px; right: 5px; cursor: pointer; color: #ff6600; font-size: 16px;">&#128465;</span>
             </div>
             <div class="full" id="xrpFull" style="display: none;" onclick="togglePanel('xrp')">
                 <h1>XRPL Large Transactions Dashboard</h1>
@@ -72,9 +71,8 @@
         </div>
         <div class="panel" id="rlusdPanel">
             <div class="summary" onclick="togglePanel('rlusd')" style="position: relative;">
-                <span class="edit-icon" data-panel="rlusd" style="float: right; margin-left: 10px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
+                <span class="edit-icon" data-panel="rlusd" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
                 <div>Currency: RLUSD</div><div>Filter: >10</div><div>Captured: <span id="rlusdCount">0</span></div>
-                <span class="reset-icon" data-panel="rlusd" style="position: absolute; bottom: 5px; right: 5px; cursor: pointer; color: #ff6600; font-size: 16px;">&#128465;</span>
             </div>
             <div class="full" id="rlusdFull" style="display: none;" onclick="togglePanel('rlusd')">
                 <h1>RLUSD Large Transactions Dashboard</h1>
@@ -98,7 +96,7 @@
 
     <div class="panel" id="graphPanel">
         <div class="summary" onclick="togglePanel('graph')" style="position: relative;">
-            <span class="edit-icon" data-panel="graph" style="float: right; margin-left: 10px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
+            <span class="edit-icon" data-panel="graph" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
             <div>XRP Price Graph</div><div>Latest: Loading...</div>
         </div>
         <div class="full" id="graphFull" style="display: none;">

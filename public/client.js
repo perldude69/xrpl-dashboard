@@ -138,7 +138,7 @@ function createPanelFromFilter(panelId, f) {
   panel.style.position = 'relative';
   panel.innerHTML = `
     <div class="summary" onclick="togglePanel('${panelId}')" style="position: relative;">
-      <span class="edit-icon" data-panel="${panelId}" style="float: right; margin-left: 10px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
+      <span class="edit-icon" data-panel="${panelId}" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
       <div>Currency: ${displayCurrency}</div><div>Filter: >${f.limit}</div><div>Captured: <span id="${panelId}Count">0</span></div>
       <span class="reset-icon" data-panel="${panelId}" style="position: absolute; bottom: 5px; right: 5px; cursor: pointer; color: #ff6600; font-size: 16px;">&#128465;</span>
     </div>
@@ -483,6 +483,8 @@ function editPanel(panelType) {
         localStorage.setItem('filters', JSON.stringify(filters));
         socket.emit('updateFilters', filters);
         // Update summary
+        const displayCurrency = getCurrencyDisplay(filters.rlusd.currency);
+        document.querySelector('#rlusdPanel .summary div:nth-child(1)').textContent = 'Currency: ' + displayCurrency;
         document.querySelector('#rlusdPanel .summary div:nth-child(2)').textContent = 'Filter: >' + filters.rlusd.limit;
         hideEditModal();
       });
