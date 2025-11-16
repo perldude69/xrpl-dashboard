@@ -17,6 +17,15 @@ let currentLedgerTxs = [];
 let filters = JSON.parse(localStorage.getItem('filters') || '{"xrp":{"currency":"XRP","limit":10000000},"rlusd":{"currency":"524C555344000000000000000000000000000000","issuer":"rMxCKbEDwqr76QuheSUMdEGf4B9xJ8m5De","limit":10}}');
 let currentEditingPanel = '';
 
+// Global delegation for trash icons (reset counters)
+document.addEventListener('click', function(e) {
+  if (e.target && e.target.classList && e.target.classList.contains('reset-icon')) {
+    e.stopPropagation();
+    const panelId = e.target.dataset.panel;
+    resetCapturedCount(panelId);
+  }
+});
+
 function validatePositiveNumber(value, fieldName) {
   const num = parseFloat(value);
   if (isNaN(num) || num <= 0 || !Number.isInteger(num)) {
