@@ -17,6 +17,14 @@ let currentLedgerTxs = [];
 let filters = JSON.parse(localStorage.getItem('filters') || '{"xrp":{"currency":"XRP","limit":10000000},"rlusd":{"currency":"524C555344000000000000000000000000000000","issuer":"rMxCKbEDwqr76QuheSUMdEGf4B9xJ8m5De","limit":10}}');
 let currentEditingPanel = '';
 
+function validatePositiveNumber(value, fieldName) {
+  const num = parseFloat(value);
+  if (isNaN(num) || num <= 0 || !Number.isInteger(num)) {
+    return `${fieldName} must be a positive integer.`;
+  }
+  return null; // Valid
+}
+
 function saveWalletData() {
   localStorage.setItem('walletData', JSON.stringify(walletData));
 }
@@ -129,9 +137,10 @@ function createPanelFromFilter(panelId, f) {
   panel.id = panelId + 'Panel';
   panel.style.position = 'relative';
   panel.innerHTML = `
-    <span class="edit-icon" data-panel="${panelId}" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
-    <div class="summary" onclick="togglePanel('${panelId}')">
+    <div class="summary" onclick="togglePanel('${panelId}')" style="position: relative;">
+      <span class="edit-icon" data-panel="${panelId}" style="float: right; margin-left: 10px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
       <div>Currency: ${displayCurrency}</div><div>Filter: >${f.limit}</div><div>Captured: <span id="${panelId}Count">0</span></div>
+      <span class="reset-icon" data-panel="${panelId}" style="position: absolute; bottom: 5px; right: 5px; cursor: pointer; color: #ff6600; font-size: 16px;">&#128465;</span>
     </div>
     <div class="full" id="${panelId}Full" style="display: none;" onclick="togglePanel('${panelId}')">
       <h1>${displayCurrency} Large Transactions Dashboard</h1>
@@ -154,6 +163,11 @@ function createPanelFromFilter(panelId, f) {
   // Add event listener for edit icon
   panel.querySelector('.edit-icon').addEventListener('click', (e) => {
     editPanel(e.target.dataset.panel);
+  });
+  // Add event listener for reset icon
+  panel.querySelector('.reset-icon').addEventListener('click', (e) => {
+    e.stopPropagation();
+    resetCapturedCount(e.target.dataset.panel);
   });
   // Add transaction listener
   addCustomTransactionListener(panelId);
@@ -187,6 +201,13 @@ window.addEventListener('load', () => {
   document.querySelectorAll('.edit-icon').forEach(icon => {
     icon.addEventListener('click', (e) => {
       editPanel(e.target.dataset.panel);
+    });
+  });
+
+  document.querySelectorAll('.reset-icon').forEach(icon => {
+    icon.addEventListener('click', (e) => {
+      e.stopPropagation();
+      resetCapturedCount(e.target.dataset.panel);
     });
   });
 
@@ -431,82 +452,71 @@ function editPanel(panelType) {
       renderWalletList();
       hideEditModal();
     });
-  } else if (panelType === 'xrp') {
-    content.innerHTML = '<label>Limit: <input id="editXrpLimit" type="number" value="' + (filters.xrp?.limit || 10000000) + '"></label><br><button id="saveXrp">Save</button>';
-    document.getElementById('saveXrp').addEventListener('click', () => {
-      filters.xrp.limit = parseInt(document.getElementById('editXrpLimit').value);
-      localStorage.setItem('filters', JSON.stringify(filters));
-      socket.emit('updateFilters', filters);
-      // Update summary
-      document.querySelector('#xrpPanel .summary div:nth-child(2)').textContent = 'Filter: >' + filters.xrp.limit;
-      hideEditModal();
-    });
-  } else if (panelType === 'rlusd') {
-    content.innerHTML = '<label>Currency: <input id="editRlusdCurrency" value="' + (filters.rlusd?.currency || 'RLUSD') + '"></label><br><label>Issuer: <input id="editRlusdIssuer" value="' + (filters.rlusd?.issuer || '') + '"></label><br><label>Limit: <input id="editRlusdLimit" type="number" value="' + (filters.rlusd?.limit || 10) + '"></label><br><button id="saveRlusd">Save</button>';
-    document.getElementById('saveRlusd').addEventListener('click', () => {
-      filters.rlusd.currency = document.getElementById('editRlusdCurrency').value;
-      filters.rlusd.issuer = document.getElementById('editRlusdIssuer').value;
-      filters.rlusd.limit = parseInt(document.getElementById('editRlusdLimit').value);
-      localStorage.setItem('filters', JSON.stringify(filters));
-      socket.emit('updateFilters', filters);
-      // Update summary
-      document.querySelector('#rlusdPanel .summary div:nth-child(2)').textContent = 'Filter: >' + filters.rlusd.limit;
-      hideEditModal();
-    });
-  } else if (panelType === 'graph') {
-    const currentPeriod = document.getElementById('periodSelect').value;
-    const currentInterval = document.getElementById('intervalSelect').value;
-    content.innerHTML = `
-      <label>Period: <select id="editPeriod">
-        <option value="1d">Last 1 Day</option>
-        <option value="7d">Last 7 Days</option>
-        <option value="30d">Last 30 Days</option>
-        <option value="90d">Last 90 Days</option>
-        <option value="all">All Time</option>
-      </select></label><br>
-      <label>Interval: <select id="editInterval">
-        <option value="1m">1 Minute</option>
-        <option value="1h">1 Hour</option>
-        <option value="4h">4 Hours</option>
-        <option value="12h">12 Hours</option>
-        <option value="1d">1 Day</option>
-      </select></label><br>
-      <button id="saveGraph">Save</button>
-    `;
-    document.getElementById('editPeriod').value = currentPeriod;
-    document.getElementById('editInterval').value = currentInterval;
-    document.getElementById('saveGraph').addEventListener('click', () => {
-      const newPeriod = document.getElementById('editPeriod').value;
-      const newInterval = document.getElementById('editInterval').value;
-      document.getElementById('periodSelect').value = newPeriod;
-      document.getElementById('intervalSelect').value = newInterval;
-      loadGraphData();
-      hideEditModal();
-    });
-  } else {
-    // Custom panels
-    const f = filters[panelType];
-    content.innerHTML = '<label>Currency: <input id="editCustomCurrency" value="' + (f?.currency || '') + '"></label><br><label>Issuer: <input id="editCustomIssuer" value="' + (f?.issuer || '') + '"></label><br><label>Limit: <input id="editCustomLimit" type="number" value="' + (f?.limit || 0) + '"></label><br><button id="saveCustom">Save</button>';
-    document.getElementById('saveCustom').addEventListener('click', () => {
-      filters[panelType].currency = document.getElementById('editCustomCurrency').value;
-      filters[panelType].issuer = document.getElementById('editCustomIssuer').value;
-      filters[panelType].limit = parseInt(document.getElementById('editCustomLimit').value);
-      localStorage.setItem('filters', JSON.stringify(filters));
-      socket.emit('updateFilters', filters);
-      // Update summary
-      const displayCurrency = getCurrencyDisplay(filters[panelType].currency);
-      document.querySelector('#' + panelType + 'Panel .summary div:nth-child(1)').textContent = 'Currency: ' + displayCurrency;
-      document.querySelector('#' + panelType + 'Panel .summary div:nth-child(2)').textContent = 'Filter: >' + filters[panelType].limit;
-      hideEditModal();
-    });
-  }
-  document.getElementById('editModal').style.display = 'block';
-  document.getElementById('modalOverlay').style.display = 'block';
+   } else if (panelType === 'xrp') {
+     content.innerHTML = '<label>Limit: <input id="editXrpLimit" type="number" value="' + (filters.xrp?.limit || 10000000) + '"></label><br><button id="saveXrp">Save</button>';
+     document.getElementById('saveXrp').addEventListener('click', () => {
+       const limitValue = document.getElementById('editXrpLimit').value;
+       const error = validatePositiveNumber(limitValue, 'Limit');
+       if (error) {
+         document.getElementById('editError').textContent = error;
+         return; // Do not close or save
+       }
+       filters.xrp.limit = parseInt(limitValue);
+       localStorage.setItem('filters', JSON.stringify(filters));
+       socket.emit('updateFilters', filters);
+       // Update summary
+       document.querySelector('#xrpPanel .summary div:nth-child(2)').textContent = 'Filter: >' + filters.xrp.limit;
+       hideEditModal();
+      });
+    } else if (panelType === 'rlusd') {
+      content.innerHTML = '<label>Currency: <input id="editRlusdCurrency" value="' + (filters.rlusd?.currency || 'RLUSD') + '"></label><br><label>Issuer: <input id="editRlusdIssuer" value="' + (filters.rlusd?.issuer || '') + '"></label><br><label>Limit: <input id="editRlusdLimit" type="number" value="' + (filters.rlusd?.limit || 10) + '"></label><br><button id="saveRlusd">Save</button>';
+      document.getElementById('saveRlusd').addEventListener('click', () => {
+        const limitValue = document.getElementById('editRlusdLimit').value;
+        const limitError = validatePositiveNumber(limitValue, 'Limit');
+        if (limitError) {
+          document.getElementById('editError').textContent = limitError;
+          return;
+        }
+        filters.rlusd.currency = document.getElementById('editRlusdCurrency').value;
+        filters.rlusd.issuer = document.getElementById('editRlusdIssuer').value;
+        filters.rlusd.limit = parseInt(limitValue);
+        localStorage.setItem('filters', JSON.stringify(filters));
+        socket.emit('updateFilters', filters);
+        // Update summary
+        document.querySelector('#rlusdPanel .summary div:nth-child(2)').textContent = 'Filter: >' + filters.rlusd.limit;
+        hideEditModal();
+      });
+    } else {
+      // Custom panels
+      const f = filters[panelType];
+      content.innerHTML = '<label>Currency: <input id="editCustomCurrency" value="' + (f?.currency || '') + '"></label><br><label>Issuer: <input id="editCustomIssuer" value="' + (f?.issuer || '') + '"></label><br><label>Limit: <input id="editCustomLimit" type="number" value="' + (f?.limit || 0) + '"></label><br><button id="saveCustom">Save</button>';
+      document.getElementById('saveCustom').addEventListener('click', () => {
+        const limitValue = document.getElementById('editCustomLimit').value;
+        const limitError = validatePositiveNumber(limitValue, 'Limit');
+        if (limitError) {
+          document.getElementById('editError').textContent = limitError;
+          return;
+        }
+        filters[panelType].currency = document.getElementById('editCustomCurrency').value;
+        filters[panelType].issuer = document.getElementById('editCustomIssuer').value;
+        filters[panelType].limit = parseInt(limitValue);
+        localStorage.setItem('filters', JSON.stringify(filters));
+        socket.emit('updateFilters', filters);
+        // Update summary
+        const displayCurrency = getCurrencyDisplay(filters[panelType].currency);
+        document.querySelector('#' + panelType + 'Panel .summary div:nth-child(1)').textContent = 'Currency: ' + displayCurrency;
+        document.querySelector('#' + panelType + 'Panel .summary div:nth-child(2)').textContent = 'Filter: >' + filters[panelType].limit;
+        hideEditModal();
+      });
+    }
+   document.getElementById('editModal').style.display = 'block';
+   document.getElementById('modalOverlay').style.display = 'block';
 }
 
 function hideEditModal() {
   document.getElementById('editModal').style.display = 'none';
   document.getElementById('modalOverlay').style.display = 'none';
+  document.getElementById('editError').textContent = ''; // Clear error
 }
 
 function showNewPanelModal() {
@@ -534,6 +544,16 @@ function createNewPanel() {
   socket.emit('updateFilters', filters);
   createPanelFromFilter(panelId, filters[panelId]);
   hideNewPanelModal();
+}
+
+function resetCapturedCount(panelId) {
+  // Reset count display
+  const countSpan = document.getElementById(panelId + 'Count');
+  if (countSpan) countSpan.textContent = '0';
+
+  // Clear transaction table
+  const tableBody = document.querySelector('#' + panelId + 'Table tbody');
+  if (tableBody) tableBody.innerHTML = '';
 }
 
 function deletePanel() {

@@ -19,7 +19,7 @@
         .threshold { font-size: 14px; color: #00ff00; margin-bottom: 10px; }
         .wallet-input { width: 400px; max-width: 100%; padding: 5px; margin-bottom: 5px; background: #000; color: #00ff00; border: 1px solid #ff6600; }
         .balance { font-size: 12px; color: #00ff00; margin-left: 10px; }
-        .summary { cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; width: 32ch; height: auto; background: #000; border: 1px solid #ff6600; border-radius: 5px; margin-bottom: 10px; font-weight: bold; padding: 10px; color: #00ff00; }
+        .summary { cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; width: 32ch; height: auto; background: #000; border: 1px solid #ff6600; border-radius: 5px; margin-bottom: 10px; font-weight: bold; padding: 10px; color: #00ff00; overflow: hidden; }
         .summary div { margin: 2px 0; text-align: left; }
         .full { position: fixed; top: 10%; left: 10%; width: 80%; height: 80%; background: #000; z-index: 1000; padding: 20px; overflow: auto; border: 2px solid #ff6600; border-radius: 10px; color: #00ff00; }
         .panels-container { display: flex; flex-direction: row; gap: 20px; justify-content: flex-start; }
@@ -30,6 +30,7 @@
         .no-border th, .no-border td { border: none; }
         .no-border th { background-color: transparent; color: #00ff00; }
         .edit-icon:hover { color: #ff6600; }
+        .reset-icon:hover { color: #ff0000; }
     </style>
 </head>
 <body>
@@ -45,10 +46,11 @@
          <button id="newPanel">New Panel</button>
     </div>
     <div class="panels-container">
-        <div class="panel" id="xrpPanel" style="position: relative;">
-            <span class="edit-icon" data-panel="xrp" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
-            <div class="summary" onclick="togglePanel('xrp')">
+        <div class="panel" id="xrpPanel">
+            <div class="summary" onclick="togglePanel('xrp')" style="position: relative;">
+                <span class="edit-icon" data-panel="xrp" style="float: right; margin-left: 10px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
                 <div>Currency: XRP</div><div>Filter: >10,000,000</div><div>Captured: <span id="xrpCount">0</span></div>
+                <span class="reset-icon" data-panel="xrp" style="position: absolute; bottom: 5px; right: 5px; cursor: pointer; color: #ff6600; font-size: 16px;">&#128465;</span>
             </div>
             <div class="full" id="xrpFull" style="display: none;" onclick="togglePanel('xrp')">
                 <h1>XRPL Large Transactions Dashboard</h1>
@@ -68,10 +70,11 @@
                 </table>
             </div>
         </div>
-        <div class="panel" id="rlusdPanel" style="position: relative;">
-            <span class="edit-icon" data-panel="rlusd" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
-            <div class="summary" onclick="togglePanel('rlusd')">
+        <div class="panel" id="rlusdPanel">
+            <div class="summary" onclick="togglePanel('rlusd')" style="position: relative;">
+                <span class="edit-icon" data-panel="rlusd" style="float: right; margin-left: 10px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
                 <div>Currency: RLUSD</div><div>Filter: >10</div><div>Captured: <span id="rlusdCount">0</span></div>
+                <span class="reset-icon" data-panel="rlusd" style="position: absolute; bottom: 5px; right: 5px; cursor: pointer; color: #ff6600; font-size: 16px;">&#128465;</span>
             </div>
             <div class="full" id="rlusdFull" style="display: none;" onclick="togglePanel('rlusd')">
                 <h1>RLUSD Large Transactions Dashboard</h1>
@@ -93,9 +96,9 @@
         </div>
     </div>
 
-    <div class="panel" id="graphPanel" style="position: relative;">
-        <span class="edit-icon" data-panel="graph" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
-        <div class="summary" onclick="togglePanel('graph')">
+    <div class="panel" id="graphPanel">
+        <div class="summary" onclick="togglePanel('graph')" style="position: relative;">
+            <span class="edit-icon" data-panel="graph" style="float: right; margin-left: 10px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
             <div>XRP Price Graph</div><div>Latest: Loading...</div>
         </div>
         <div class="full" id="graphFull" style="display: none;">
@@ -130,6 +133,7 @@
         <p class="threshold">Monitoring activity for up to 10 entered XRP addresses</p>
         <div id="walletPanel" style="border: 2px solid #ff6600; border-radius: 10px; padding: 10px; width: auto; display: inline-block; position: relative;">
             <span class="edit-icon" data-panel="wallet" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
+            <span class="reset-icon" data-panel="wallet" style="position: absolute; bottom: 5px; right: 5px; cursor: pointer; color: #ff6600; font-size: 16px;">&#128465;</span>
             <label><input type="checkbox" id="editMode"> Edit</label><br><br>
             <div id="walletList">
                 <!-- Wallets will be dynamically generated -->
@@ -145,6 +149,7 @@
     <div id="editModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 2px solid #ff6600; padding: 20px; z-index: 1001; color: #00ff00;">
         <span id="closeEditModal" style="position: absolute; top: 5px; right: 5px; cursor: pointer; font-size: 20px;">×</span>
         <h3>Edit Panel</h3>
+        <div id="editError" style="color: red; margin-bottom: 10px;"></div>
         <div id="editModalContent"></div>
         <button id="deletePanel" style="background: #ff0000; color: #fff; margin-top: 10px;">Delete Panel</button>
     </div>
