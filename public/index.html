@@ -35,7 +35,7 @@
 </head>
 <body>
     <div id="menu">
-        <span style="width: 100px; padding: 2px;">Current Ledger: <span id="ledgerNum"></span></span>
+        <span style="width: 100px; padding: 2px;">Current Ledger: <span id="ledgerIndex"></span></span>
         <span style="width: 80px; padding: 2px;">Transactions: <span id="txCount"></span></span>
         <span style="width: 90px; padding: 2px;">XRP Payments: <span id="xrpPayments"></span></span>
         <span style="width: 90px; padding: 2px;">XRP Burned: <span id="xrpBurned"></span></span>
@@ -46,61 +46,12 @@
          <button id="newPanel">New Panel</button>
     </div>
     <div class="panels-container">
-        <div class="panel" id="xrpPanel">
-            <div class="summary" onclick="togglePanel('xrp')" style="position: relative;">
-                <span class="edit-icon" data-panel="xrp" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
-                <span class="reset-icon" data-panel="xrp" style="position: absolute; bottom: 5px; right: 5px; cursor: pointer; color: #ff6600; font-size: 16px;">&#128465;</span>
-                <div>Currency: XRP</div><div>Filter: >10,000,000</div><div>Captured: <span id="xrpCount">0</span></div>
-            </div>
-            <div class="full" id="xrpFull" style="display: none;" onclick="togglePanel('xrp')">
-                <h1>XRPL Large Transactions Dashboard</h1>
-                <p class="threshold">Monitoring transactions greater than 10,000,000 XRP</p>
-                <table id="transactions" onclick="event.stopPropagation()">
-                    <thead>
-                        <tr>
-                            <th>Ledger Number</th>
-                            <th>Sender Account</th>
-                            <th>Receiver Account</th>
-                            <th>Amount (XRP)</th>
-                            <th>Timestamp</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <div class="panel" id="rlusdPanel">
-            <div class="summary" onclick="togglePanel('rlusd')" style="position: relative;">
-                <span class="edit-icon" data-panel="rlusd" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
-                <span class="reset-icon" data-panel="rlusd" style="position: absolute; bottom: 5px; right: 5px; cursor: pointer; color: #ff6600; font-size: 16px;">&#128465;</span>
-                <div>Currency: RLUSD</div><div>Filter: >10</div><div>Captured: <span id="rlusdCount">0</span></div>
-            </div>
-            <div class="full" id="rlusdFull" style="display: none;" onclick="togglePanel('rlusd')">
-                <h1>RLUSD Large Transactions Dashboard</h1>
-                <p class="threshold">Monitoring transactions greater than 10 RLUSD</p>
-                <table id="rlusd" onclick="event.stopPropagation()">
-                    <thead>
-                        <tr>
-                            <th>Ledger Number</th>
-                            <th>Sender Account</th>
-                            <th>Receiver Account</th>
-                            <th>Amount (RLUSD)</th>
-                            <th>Timestamp</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
-            </div>
-        </div>
     </div>
 
     <div class="panel" id="graphPanel">
         <div class="summary" onclick="togglePanel('graph')" style="position: relative;">
             <span class="edit-icon" data-panel="graph" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
-            <span class="reset-icon" data-panel="graph" style="position: absolute; bottom: 5px; right: 5px; cursor: pointer; color: #ff6600; font-size: 16px;">&#128465;</span>
-            <div>XRP Price Graph</div><div>Latest: Loading...</div>
+            <div>XRP Price Graph</div><div>Latest: <span id="smallCurrentPrice">Loading...</span></div>
         </div>
         <div class="full" id="graphFull" style="display: none;">
             <button onclick="togglePanel('graph')" style="position: absolute; top: 10px; right: 10px; background: #000; color: #ff6600; border: 1px solid #ff6600; font-size: 20px; cursor: pointer;">×</button>
@@ -130,16 +81,15 @@
     </div>
 
     <div class="panel">
-        <h1>Wallet Activity Alerts</h1>
-        <p class="threshold">Monitoring activity for up to 10 entered XRP addresses</p>
-        <div id="walletPanel" style="border: 2px solid #ff6600; border-radius: 10px; padding: 10px; width: auto; display: inline-block; position: relative;">
-            <span class="edit-icon" data-panel="wallet" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
-            <span class="reset-icon" data-panel="wallet" style="position: absolute; bottom: 5px; right: 5px; cursor: pointer; color: #ff6600; font-size: 16px;">&#128465;</span>
-            <label><input type="checkbox" id="editMode"> Edit</label><br><br>
-            <div id="walletList">
-                <!-- Wallets will be dynamically generated -->
-            </div>
-        </div>
+        <h1>Wallet Monitoring</h1>
+        <p class="threshold">Enter XRP addresses to monitor balances and activities</p>
+        <input type="text" id="walletAddresses" class="wallet-input" placeholder="Enter addresses separated by commas">
+        <button id="setAddresses" style="background: #000; color: #00ff00; border: 1px solid #ff6600; padding: 5px;">Set Addresses</button>
+        <button id="trackActivity" style="background: #000; color: #00ff00; border: 1px solid #ff6600; padding: 5px; margin-left: 10px;">Track Activity</button>
+        <h3>Balances</h3>
+        <ul id="balanceList"></ul>
+        <h3>Recent Activities</h3>
+        <ul id="activityList" style="max-height: 200px; overflow-y: auto;"></ul>
     </div>
     <div id="notifications" style="position: fixed; top: 70px; right: 20px; z-index: 1001;"></div>
     <div id="ledgerOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); z-index: 2000; color: #00ff00; font-family: 'Courier New', monospace; font-size: 12px; padding: 20px; overflow: auto;">
@@ -157,6 +107,7 @@
     <div id="newPanelModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 2px solid #ff6600; padding: 20px; z-index: 1001; color: #00ff00;">
         <span id="closeNewModal" style="position: absolute; top: 5px; right: 5px; cursor: pointer; font-size: 20px;">×</span>
         <h3>New Panel</h3>
+        <label>Name: <input id="newCurrencyName" style="background: #000; color: #00ff00; border: 1px solid #ff6600;"></label><br><br>
         <label>Currency Code: <input id="newCurrencyCode" style="background: #000; color: #00ff00; border: 1px solid #ff6600;"></label><br><br>
         <label>Issuer Wallet: <input id="newIssuer" style="background: #000; color: #00ff00; border: 1px solid #ff6600;"></label><br><br>
         <label>Limit: <input id="newLimit" type="number" style="background: #000; color: #00ff00; border: 1px solid #ff6600;"></label><br><br>

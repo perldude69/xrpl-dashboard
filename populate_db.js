@@ -4,7 +4,9 @@ const sqlite3 = require('sqlite3').verbose();
 const client = new Client('wss://s1.ripple.com');
 const db = new sqlite3.Database('xrp_prices.db');
 
-db.run('CREATE TABLE IF NOT EXISTS xrp_price (id INTEGER PRIMARY KEY AUTOINCREMENT, price REAL, time TEXT, ledger INTEGER)');
+db.serialize(() => {
+  db.run('CREATE TABLE IF NOT EXISTS xrp_price (id INTEGER PRIMARY KEY AUTOINCREMENT, price REAL, time TEXT, ledger INTEGER)');
+});
 
 function parsePriceFromTx(tx) {
   if (tx.tx_json.Memos) {
@@ -47,16 +49,15 @@ async function populateDB() {
   let count = 0;
   let pendingInserts = 0;  // Track pending operations
 
-  const insertCallback = (resolve) => {
-    count++;
-    pendingInserts--;
-    if (pendingInserts === 0) {
-      console.log(`Finished populating DB with ${count} entries`);
-      client.disconnect();
-      db.close();
-      resolve();
-    }
-  };
+   const insertCallback = (resolve) => {
+     count++;
+     pendingInserts--;
+     if (pendingInserts === 0) {
+       console.log(`Finished populating DB with ${count} entries`);
+       client.disconnect();
+       resolve();
+     }
+   };
 
   return new Promise(async (resolve) => {
     do {
@@ -113,14 +114,13 @@ async function populateDB() {
       }
     } while (marker);
 
-    // If no inserts were pending, resolve immediately
-    if (pendingInserts === 0) {
-      console.log(`Finished populating DB with ${count} entries`);
-      await client.disconnect();
-      db.close();
-      resolve();
-    }
+     // If no inserts were pending, resolve immediately
+     if (pendingInserts === 0) {
+       console.log(`Finished populating DB with ${count} entries`);
+       await client.disconnect();
+       resolve();
+     }
   });
 }
 
-populateDB().catch(console.error);
+module.exports = { populateDB };

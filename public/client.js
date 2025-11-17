@@ -1,142 +1,74 @@
+function togglePanel(id) {
+  const full = document.getElementById(id + 'Full');
+  if (full.style.display === 'none' || full.style.display === '') {
+    full.style.display = 'block';
+  } else {
+    full.style.display = 'none';
+  }
+}
+
 (function(){
   const socket = io();
 
   const tableBody = document.querySelector('#transactions tbody');
   const rlusdBody = document.querySelector('#rlusd tbody');
 
-  let walletData = JSON.parse(localStorage.getItem('walletData') || '{"addresses":[],"nicknames":{},"alerts":{}}');
-  let priceChart;
-  let currentLedgerTxs = [];
-  let filters = JSON.parse(localStorage.getItem('filters') || '{"xrp":{"currency":"XRP","limit":10000000},"rlusd":{"currency":"524C555344000000000000000000000000000000","issuer":"rMxCKbEDwqr76QuheSUMdEGf4B9xJ8m5De","limit":10}}');
-  let currentEditingPanel = '';
+  // Panel template
+  const panelTemplate = {
+    id: '',
+    name: 'Currency Monitor',
+    currency: 'XRP',
+    issuer: null,
+    limit: 1000000
+  };
 
-  // Trash / Reset and Save delegation
-  document.addEventListener('click', function(e){
-    if (e.target && e.target.classList && e.target.classList.contains('reset-icon')) {
-      e.stopPropagation();
-      resetCapturedCount(e.target.dataset.panel);
-    }
-    if (e.target && (e.target.id === 'saveXrp' || e.target.id === 'saveRlusd' || e.target.id === 'saveCustom')) {
-      e.preventDefault();
-      e.stopPropagation();
-      handlePanelSave();
-    }
-  });
+// localStorage for panels
+function savePanels(panels) {
+  localStorage.setItem('xrplPanels', JSON.stringify(panels));
+}
 
-  function getCurrencyDisplay(currency) {
-    const known = {
-      '524C555344000000000000000000000000000000': 'RLUSD',
-      '5553440000000000000000000000000000000000': 'USD',
-      '4254430000000000000000000000000000000000': 'BTC',
-      '4555520000000000000000000000000000000000': 'EUR',
-      '4742500000000000000000000000000000000000': 'GBP',
-      '4A50590000000000000000000000000000000000': 'JPY',
-      '434E590000000000000000000000000000000000': 'CNY'
-    };
-    return known[currency] || currency;
+function loadPanels() {
+  const data = localStorage.getItem('xrplPanels');
+  return data ? JSON.parse(data) : [];
+}
+
+function savePanel(panel) {
+  const panels = loadPanels();
+  const index = panels.findIndex(p => p.id === panel.id);
+  if (index >= 0) {
+    panels[index] = panel;
+  } else {
+    panels.push(panel);
   }
+  savePanels(panels);
+}
 
-  function validatePositiveNumber(value, fieldName) {
-    const num = parseFloat(value);
-    if (isNaN(num) || num <= 0 || !Number.isInteger(num)) return fieldName + ' must be a positive integer.';
-    return null;
-  }
+function deletePanel(id) {
+  const panels = loadPanels().filter(p => p.id !== id);
+  savePanels(panels);
+}
 
-  function saveWalletData(){ localStorage.setItem('walletData', JSON.stringify(walletData)); }
-
-  function renderWalletList(){
-    const list = document.getElementById('walletList');
-    const isEdit = document.getElementById('editMode').checked;
-    list.innerHTML = '';
-    if(isEdit){
-      const table = document.createElement('table');
-      table.className='no-border';
-      table.style.width='auto';
-      table.style.maxWidth='500px';
-      table.style.borderCollapse='collapse';
-      const thead = document.createElement('thead');
-      thead.innerHTML = `<tr style="color: #00ff00;"><th style="padding: 5px;"></th><th style="padding: 5px;">Nickname</th><th style="padding: 5px;">Address</th></tr>`;
-      table.appendChild(thead);
-      const tbody = document.createElement('tbody');
-      table.appendChild(tbody);
-      list.appendChild(table);
-      for (let i=0;i<10;i++){
-        const addr = walletData.addresses[i]||'';
-        const nickname = walletData.nicknames[i]||'';
-        const alertEnabled = walletData.alerts[i] !== false;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td style="padding: 5px; text-align: center;"><input type="checkbox" id="alert${i}" ${alertEnabled?'checked':''}></td>`+
-                       `<td style="padding: 5px;"><input type="text" class="wallet-input" id="nickname${i}" placeholder="Nickname" value="${nickname}" style="min-width: 100px;"></td>`+
-                       `<td style="padding: 5px;"><input type="text" class="wallet-input" id="addr${i}" placeholder="Address ${i+1}" value="${addr}" style="min-width: 250px;"></td>`;
-        tbody.appendChild(tr);
-      }
-    } else {
-      const table = document.createElement('table');
-      table.className='no-border';
-      table.style.width='auto';
-      table.style.maxWidth='500px';
-      table.style.borderCollapse='collapse';
-      const thead = document.createElement('thead');
-      thead.innerHTML = `<tr style="color: #00ff00;"><th style="padding: 5px;">Wallet</th><th style="padding: 5px;">Balance</th><th style="padding: 5px;"></th></tr>`;
-      table.appendChild(thead);
-      const tbody = document.createElement('tbody');
-      table.appendChild(tbody);
-      list.appendChild(table);
-      for(let i=0;i<10;i++){
-        const addr = walletData.addresses[i]||'';
-        const nickname = walletData.nicknames[i]||'';
-        const displayName = nickname||addr;
-        if(displayName){
-          const alertIcon = walletData.alerts[i] ? '&#9888;' : '';
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td style="padding: 5px;">${displayName}</td>`+
-                         `<td style="padding: 5px;" id="balance${i}"></td>`+
-                         `<td style="padding: 5px; color: #ffffff; font-size: 20px; text-align: center;">${alertIcon}</td>`;
-          tbody.appendChild(tr);
-        }
-      }
-    }
-  }
-
-  function saveWallets(){
-    for(let i=0;i<10;i++){
-      const addrInput = document.getElementById(`addr${i}`);
-      const nicknameInput = document.getElementById(`nickname${i}`);
-      const alertInput = document.getElementById(`alert${i}`);
-      if (addrInput && nicknameInput && alertInput){
-        walletData.addresses[i] = addrInput.value.trim();
-        walletData.nicknames[i] = nicknameInput.value.trim();
-        walletData.alerts[i] = alertInput.checked;
-      }
-    }
-    saveWalletData();
-    socket.emit('updateWalletData', walletData);
-    socket.emit('setWatchedAddresses', walletData.addresses);
-    renderWalletList();
-  }
-
-  function createPanelFromFilter(panelId, f){
-    const displayCurrency = getCurrencyDisplay(f.currency);
+  function createPanel(config) {
     const panel = document.createElement('div');
     panel.className = 'panel';
-    panel.id = panelId + 'Panel';
-    panel.style.position = 'relative';
+    panel.id = config.id;
     panel.innerHTML = `
-      <div class="summary" onclick="togglePanel('${panelId}')" style="position: relative;">
-        <span class="edit-icon" data-panel="${panelId}" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
-        <div>Currency: ${displayCurrency}</div><div>Filter: >${f.limit}</div><div>Captured: <span id="${panelId}Count">0</span></div>
-        <span class="reset-icon" data-panel="${panelId}" style="position: absolute; bottom: 5px; right: 5px; cursor: pointer; color: #ff6600; font-size: 16px;">&#128465;</span>
+      <div class="summary" data-panel="${config.id}" style="position: relative;">
+        <span class="edit-icon" data-panel="${config.id}" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
+        <span class="reset-icon" data-panel="${config.id}" style="position: absolute; bottom: 5px; right: 5px; cursor: pointer; color: #ff6600; font-size: 16px;">&#128465;</span>
+        <div>${config.name}</div><div>Currency: ${config.currency}${config.issuer ? ' (' + config.issuer + ')' : ''}</div><div class="filter" data-panel="${config.id}">Filter: >${config.limit}</div><div>Captured: <span id="${config.id}Count">0</span></div>
       </div>
-      <div class="full" id="${panelId}Full" style="display: none;" onclick="togglePanel('${panelId}')">
-        <h1>${displayCurrency} Large Transactions Dashboard</h1>
-        <p class="threshold">Monitoring transactions greater than ${f.limit} ${displayCurrency}</p>
-        <table id="${panelId}Table" onclick="event.stopPropagation()">
+      <div class="full" id="${config.id}Full" style="display: none;" onclick="togglePanel('${config.id}')">
+        <button onclick="togglePanel('${config.id}')" style="position: absolute; top: 10px; right: 10px; background: #000; color: #ff6600; border: 1px solid #ff6600; font-size: 20px; cursor: pointer;">×</button>
+        <h1>${config.name} - ${config.currency}</h1>
+        <p class="threshold">Monitoring transactions greater than ${config.limit} ${config.currency}</p>
+        <table id="${config.id}Table" onclick="event.stopPropagation()">
           <thead>
             <tr>
               <th>Ledger Number</th>
               <th>Sender Account</th>
               <th>Receiver Account</th>
-              <th>Amount (${displayCurrency})</th>
+              <th>Amount (${config.currency})</th>
               <th>Timestamp</th>
             </tr>
           </thead>
@@ -144,96 +76,404 @@
         </table>
       </div>
     `;
-    document.querySelector('.panels-container').appendChild(panel);
+    return panel;
   }
 
-  function editPanel(panelType){
-    currentEditingPanel = panelType;
-    const content = document.getElementById('editModalContent');
-    if(panelType === 'wallet'){
-      content.innerHTML = '<p>Wallet panel: Toggle edit mode.</p><button id="toggleEdit">Toggle Edit</button>';
-      document.getElementById('toggleEdit').addEventListener('click', ()=>{
-        const editMode = document.getElementById('editMode');
-        editMode.checked = !editMode.checked;
-        renderWalletList();
-        hideEditModal();
+  function loadAndCreatePanels() {
+    const panels = loadPanels();
+    console.log('Loaded panels:', panels);
+    // Ensure default XRP panel exists
+    if (!panels.find(p => p.id === 'default-xrp')) {
+      const defaultPanel = { ...panelTemplate, id: 'default-xrp', name: 'XRP Monitor', currency: 'XRP', issuer: null, limit: 10000000 };
+      panels.push(defaultPanel);
+      savePanel(defaultPanel);
+    }
+    const container = document.querySelector('.panels-container');
+    panels.forEach(config => {
+      const panel = createPanel(config);
+      container.appendChild(panel);
+      // Listen for events
+      socket.on(`panelTransaction:${config.id}`, (data) => {
+        const tbody = document.querySelector(`#${config.id}Table tbody`);
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${data.ledger}</td>
+          <td>${data.sender}</td>
+          <td>${data.receiver}</td>
+          <td>${data.amount}</td>
+          <td>${new Date(data.timestamp).toLocaleString()}</td>
+        `;
+        tbody.appendChild(row);
+        if (tbody.children.length > 10) tbody.removeChild(tbody.firstChild);
+        const countSpan = document.getElementById(`${config.id}Count`);
+        countSpan.textContent = parseInt(countSpan.textContent) + 1;
+
+        // Add notification
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        notification.textContent = `New ${config.currency} transaction: ${data.amount} (>${config.limit})`;
+        document.getElementById('notifications').appendChild(notification);
+        setTimeout(() => {
+          if (notification.parentNode) notification.parentNode.removeChild(notification);
+        }, 5000);
       });
-    } else if(panelType === 'xrp'){
-      content.innerHTML = '<label>Limit: <input id="editXrpLimit" type="number" value="' + (filters.xrp?.limit || 10000000) + '"></label><br><button id="saveXrp">Save</button>';
-    } else if(panelType === 'rlusd'){
-      content.innerHTML = '<label>Currency: <input id="editRlusdCurrency" value="' + (filters.rlusd?.currency || 'RLUSD') + '"></label><br><label>Issuer: <input id="editRlusdIssuer" value="' + (filters.rlusd?.issuer || '') + '"></label><br><label>Limit: <input id="editRlusdLimit" type="number" value="' + (filters.rlusd?.limit || 10) + '"></label><br><button id="saveRlusd">Save</button>';
-    } else {
-      const f = filters[panelType];
-      content.innerHTML = '<label>Currency: <input id="editCustomCurrency" value="' + (f?.currency || '') + '"></label><br><label>Issuer: <input id="editCustomIssuer" value="' + (f?.issuer || '') + '"></label><br><label>Limit: <input id="editCustomLimit" type="number" value="' + (f?.limit || 0) + '"></label><br><button id="saveCustom">Save</button>';
-    }
-    document.getElementById('editModal').style.display = 'block';
-    document.getElementById('modalOverlay').style.display = 'block';
+    });
+    // Send configs to server
+    console.log('Emitting updatePanels:', panels);
+    socket.emit('updatePanels', panels);
   }
 
-  function handlePanelSave(){
-    const panel = currentEditingPanel;
-    if(panel === 'xrp'){
-      const limitValue = document.getElementById('editXrpLimit').value;
-      const error = validatePositiveNumber(limitValue, 'Limit');
-      if (error) { document.getElementById('editError').textContent = error; return; }
-      filters.xrp.limit = parseInt(limitValue, 10);
-      localStorage.setItem('filters', JSON.stringify(filters));
-      socket.emit('updateFilters', filters);
-      document.querySelector('#xrpPanel .summary div:nth-child(2)').textContent = 'Filter: >' + filters.xrp.limit;
-      hideEditModal();
-    } else if(panel === 'rlusd'){
-      const currency = document.getElementById('editRlusdCurrency').value;
-      const issuer = document.getElementById('editRlusdIssuer').value;
-      const limitValue = document.getElementById('editRlusdLimit').value;
-      const limitError = validatePositiveNumber(limitValue, 'Limit');
-      if (limitError) { document.getElementById('editError').textContent = limitError; return; }
-      filters.rlusd.currency = currency;
-      filters.rlusd.issuer = issuer;
-      filters.rlusd.limit = parseInt(limitValue, 10);
-      localStorage.setItem('filters', JSON.stringify(filters));
-      socket.emit('updateFilters', filters);
-      const disp = getCurrencyDisplay(filters.rlusd.currency);
-      document.querySelector('#rlusdPanel .summary div:nth-child(1)').textContent = 'Currency: ' + disp;
-      document.querySelector('#rlusdPanel .summary div:nth-child(2)').textContent = 'Filter: >' + filters.rlusd.limit;
-      hideEditModal();
-    } else { // custom
-      const panelId = panel;
-      const currency = document.getElementById('editCustomCurrency').value;
-      const issuer = document.getElementById('editCustomIssuer').value;
-      const limitValue = document.getElementById('editCustomLimit').value;
-      const limitError = validatePositiveNumber(limitValue, 'Limit');
-      if (limitError) { document.getElementById('editError').textContent = limitError; return; }
-      filters[panelId].currency = currency;
-      filters[panelId].issuer = issuer;
-      filters[panelId].limit = parseInt(limitValue, 10);
-      localStorage.setItem('filters', JSON.stringify(filters));
-      socket.emit('updateFilters', filters);
-      const disp = getCurrencyDisplay(filters[panelId].currency);
-      document.querySelector('#' + panelId + 'Panel .summary div:nth-child(1)').textContent = 'Currency: ' + disp;
-      document.querySelector('#' + panelId + 'Panel .summary div:nth-child(2)').textContent = 'Filter: >' + filters[panelId].limit;
-      hideEditModal();
-    }
-  }
+  // Event handlers for transactions
+  socket.on('newTransaction', (data) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${data.sender}</td>
+      <td>${data.receiver}</td>
+      <td>${data.amount} XRP</td>
+      <td>${new Date(data.timestamp).toLocaleString()}</td>
+    `;
+    tableBody.appendChild(row);
+    if (tableBody.children.length > 10) tableBody.removeChild(tableBody.firstChild);
+  });
 
-  window.addEventListener('load', () => {
-    // initialize
-    renderWalletList();
-    if (walletData.addresses.length) {
-      // wire up basic wallet watch (no XRPL fetch here to keep it lightweight)
-      // placeholder
+  socket.on('newRLUSDTransaction', (data) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${data.sender}</td>
+      <td>${data.receiver}</td>
+      <td>${data.amount} RLUSD</td>
+      <td>${new Date(data.timestamp).toLocaleString()}</td>
+    `;
+    rlusdBody.appendChild(row);
+    if (rlusdBody.children.length > 10) rlusdBody.removeChild(rlusdBody.firstChild);
+  });
+
+   // Ledger info
+   socket.on('ledgerInfo', (data) => {
+     console.log('Ledger info received:', data);
+     document.getElementById('ledgerIndex').textContent = data.ledger || 'N/A';
+     document.getElementById('txCount').textContent = data.txCount || 0;
+     document.getElementById('xrpPayments').textContent = data.xrpPayments || 0;
+     document.getElementById('xrpBurned').textContent = data.totalBurned ? data.totalBurned.toFixed(2) : '0.00';
+     if (data.latestPrice) {
+       document.getElementById('currentPrice').textContent = data.latestPrice.toFixed(4);
+       document.getElementById('smallCurrentPrice').textContent = data.latestPrice.toFixed(4);
+     }
+   });
+
+  // Wallet events
+  socket.on('balances', (balances) => {
+    const balanceList = document.getElementById('balanceList');
+    balanceList.innerHTML = '';
+    balances.forEach(bal => {
+      const li = document.createElement('li');
+      li.textContent = `${bal.address}: ${bal.balance} XRP (Seq: ${bal.sequence})`;
+      balanceList.appendChild(li);
+    });
+  });
+
+  socket.on('walletActivity', (data) => {
+    const activityList = document.getElementById('activityList');
+    const li = document.createElement('li');
+    li.textContent = `Ledger ${data.ledger}: ${data.account} -> ${data.destination} ${data.amount} (${data.type})`;
+    activityList.appendChild(li);
+    if (activityList.children.length > 20) activityList.removeChild(activityList.firstChild);
+  });
+
+   // Price updates
+   socket.on('priceUpdate', (price) => {
+     document.getElementById('currentPrice').textContent = price.toFixed(4);
+     document.getElementById('smallCurrentPrice').textContent = price.toFixed(4);
+   });
+
+  // Enhanced Ledger Inspection
+  socket.on('inspectLedgerResponse', (ledgerData) => {
+    const list = document.getElementById('ledgerTxList');
+    list.innerHTML = '';
+
+    if (ledgerData.message) {
+      list.innerHTML = `<p>${ledgerData.message}</p>`;
+      document.getElementById('ledgerOverlay').style.display = 'block';
+      return;
     }
-    // create panels for existing custom filters
-    for (const [key, f] of Object.entries(filters)) {
-      if (key !== 'xrp' && key !== 'rlusd' && key !== 'graph') {
-        createPanelFromFilter(key, f);
+
+    if (ledgerData.transactions.length === 0) {
+      list.innerHTML = '<p>No transactions in this ledger.</p>';
+      return;
+    }
+
+    const table = document.createElement('table');
+    table.style.width = '100%';
+    table.style.borderCollapse = 'collapse';
+    table.innerHTML = `
+      <thead>
+        <tr style="background: #ff6600; color: #000;">
+          <th>From</th>
+          <th>To</th>
+          <th>Type</th>
+          <th>Currency</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+
+    const tbody = table.querySelector('tbody');
+    ledgerData.transactions.forEach(tx => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${tx.from}</td>
+        <td>${tx.to}</td>
+        <td>${tx.type}</td>
+        <td>${tx.currency}</td>
+        <td>${tx.amount}</td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    list.appendChild(table);
+    document.getElementById('ledgerOverlay').style.display = 'block';
+  });
+
+  document.getElementById('inspectLedger').addEventListener('click', () => {
+    socket.emit('requestLedgerInspection');
+  });
+
+  document.getElementById('closeOverlay').addEventListener('click', () => {
+    document.getElementById('ledgerOverlay').style.display = 'none';
+  });
+
+  // Wallet address input
+  document.getElementById('setAddresses').addEventListener('click', () => {
+    const addresses = document.getElementById('walletAddresses').value.split(',').map(a => a.trim());
+    socket.emit('setWatchedAddresses', addresses);
+  });
+
+  // Track wallet activity
+  document.getElementById('trackActivity').addEventListener('click', () => {
+    const addresses = document.getElementById('walletAddresses').value.split(',').map(a => a.trim());
+    socket.emit('trackWalletActivity', { addresses });
+  });
+
+  // Graph refresh
+  document.getElementById('refreshGraph').addEventListener('click', () => {
+    const period = document.getElementById('periodSelect').value;
+    const interval = document.getElementById('intervalSelect').value;
+    fetch(`/graph?period=${period}&interval=${interval}`)
+      .then(res => res.json())
+      .then(data => {
+        const ctx = document.getElementById('priceChart').getContext('2d');
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: data.labels,
+            datasets: [{
+              label: 'XRP Price (USD)',
+              data: data.prices,
+              borderColor: '#00ff00',
+              backgroundColor: 'rgba(0,255,0,0.1)',
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              x: { display: true },
+              y: { display: true }
+            }
+          }
+        });
+         document.getElementById('currentPrice').textContent = data.latestPrice ? data.latestPrice.toFixed(4) : 'N/A';
+         document.getElementById('smallCurrentPrice').textContent = data.latestPrice ? data.latestPrice.toFixed(4) : 'N/A';
+      })
+      .catch(console.error);
+  });
+
+  // Load initial graph
+  document.getElementById('refreshGraph').click();
+
+  // Load panels
+  loadAndCreatePanels();
+
+  // Re-send on reconnect
+  socket.on('connect', () => {
+    loadAndCreatePanels();
+  });
+
+  // New panel button
+  document.getElementById('newPanel').addEventListener('click', () => {
+    // Clear fields
+    document.getElementById('newCurrencyName').value = '';
+    document.getElementById('newCurrencyCode').value = '';
+    document.getElementById('newIssuer').value = '';
+    document.getElementById('newLimit').value = '';
+    document.getElementById('newPanelModal').style.display = 'block';
+  });
+
+  // Close modal
+  document.getElementById('closeNewModal').addEventListener('click', () => {
+    document.getElementById('newPanelModal').style.display = 'none';
+  });
+
+  // Cancel
+  document.getElementById('cancelPanel').addEventListener('click', () => {
+    document.getElementById('newPanelModal').style.display = 'none';
+  });
+
+  // New panel creation
+  document.getElementById('createPanel').addEventListener('click', () => {
+    const name = document.getElementById('newCurrencyName').value.trim();
+    const currency = document.getElementById('newCurrencyCode').value.trim();
+    const issuer = document.getElementById('newIssuer').value.trim() || null;
+    const limit = parseFloat(document.getElementById('newLimit').value);
+    if (!name || !currency || isNaN(limit)) {
+      alert('Please fill all fields correctly.');
+      return;
+    }
+    const config = { ...panelTemplate, id: Date.now().toString(), name, currency, issuer, limit };
+    savePanel(config).then(() => {
+      const panel = createPanel(config);
+      document.querySelector('.panels-container').appendChild(panel);
+      socket.emit('updatePanels', [config]); // Send to server
+      document.getElementById('newPanelModal').style.display = 'none';
+    });
+  });
+
+  // Panel toggle and edit/reset handlers
+  document.addEventListener('click', (e) => {
+    // Toggle panel if clicking summary but not icons
+    if (e.target.closest('.summary') && !e.target.classList.contains('edit-icon') && !e.target.classList.contains('reset-icon') && !e.target.classList.contains('filter')) {
+      const panelId = e.target.closest('.summary').dataset.panel;
+      togglePanel(panelId);
+      return;
+    }
+    if (e.target.classList.contains('edit-icon')) {
+      e.stopPropagation();
+      // Open edit modal
+      const panelId = e.target.dataset.panel;
+      const panels = loadPanels();
+      const panel = panels.find(p => p.id === panelId);
+      if (panel) {
+          document.getElementById('editModalContent').innerHTML = `
+            <label>Name: <input id="editName" value="${panel.name}"></label><br><br>
+            <label>Currency: <input id="editCurrency" value="${panel.currency}"></label><br><br>
+            <label>Issuer: <input id="editIssuer" value="${panel.issuer || ''}"></label><br><br>
+            <label>Limit: <input id="editLimit" type="number" value="${panel.limit}"></label><br><br>
+            <button id="saveEdit">Save</button>
+            <button id="deletePanel" style="background: #ff0000; color: #fff; margin-left: 10px;">Delete Panel</button>
+          `;
+          document.getElementById('editModal').style.display = 'block';
+
+          // Save edit
+          document.getElementById('saveEdit').addEventListener('click', () => {
+            panel.name = document.getElementById('editName').value.trim();
+            panel.currency = document.getElementById('editCurrency').value.trim();
+            panel.issuer = document.getElementById('editIssuer').value.trim() || null;
+            panel.limit = parseFloat(document.getElementById('editLimit').value);
+            if (!panel.name || !panel.currency || isNaN(panel.limit)) {
+              alert('Please fill fields correctly.');
+              return;
+            }
+        savePanel(panel);
+        console.log('Saved panel with limit:', panel.limit);
+        // Update DOM
+        const summary = document.querySelector(`#${panel.id} .summary`);
+        const currentCount = document.getElementById(`${panel.id}Count`).textContent;
+        summary.innerHTML = `
+          <span class="edit-icon" data-panel="${panel.id}" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
+          <span class="reset-icon" data-panel="${panel.id}" style="position: absolute; bottom: 5px; right: 5px; cursor: pointer; color: #ff6600; font-size: 16px;">&#128465;</span>
+          <div>${panel.name}</div><div>Currency: ${panel.currency}${panel.issuer ? ' (' + panel.issuer + ')' : ''}</div><div class="filter" data-panel="${panel.id}">Filter: >${panel.limit}</div><div>Captured: <span id="${panel.id}Count">${currentCount}</span></div>
+        `;
+        console.log('Updated DOM with limit:', panel.limit);
+        socket.emit('updatePanels', panels);
+        document.getElementById('editModal').style.display = 'none';
+          });
+
+          // Delete panel
+          document.getElementById('deletePanel').addEventListener('click', () => {
+            if (confirm('Delete this panel? This cannot be undone.')) {
+          deletePanel(panel.id);
+          document.getElementById(panel.id).remove();
+          socket.emit('updatePanels', panels.filter(p => p.id !== panel.id));
+          document.getElementById('editModal').style.display = 'none';
+        }
+      });
+    }
+    }
+    if (e.target.classList.contains('reset-icon')) {
+      e.stopPropagation();
+      // Reset count
+      const panelId = e.target.dataset.panel;
+      document.getElementById(`${panelId}Count`).textContent = '0';
+      const tbody = document.querySelector(`#${panelId}Table tbody`);
+      tbody.innerHTML = '';
+    }
+    if (e.target.classList.contains('filter')) {
+      e.stopPropagation();
+      // Edit limit
+      const panelId = e.target.dataset.panel;
+      const newLimit = prompt('Enter new limit:');
+      if (newLimit && !isNaN(parseFloat(newLimit))) {
+        const panels = loadPanels();
+        const panel = panels.find(p => p.id === panelId);
+        if (panel) {
+          panel.limit = parseFloat(newLimit);
+        savePanel(panel);
+        // Update display
+        e.target.textContent = `Filter: >${panel.limit}`;
+        // Update server
+        socket.emit('updatePanels', panels);
+        }
       }
     }
-    // basic wiring for icons
-    document.querySelectorAll('.edit-icon').forEach(icon => {
-      icon.addEventListener('click', (e) => { editPanel(e.target.dataset.panel); });
+  });
+
+  // Close edit modal
+  document.getElementById('closeEditModal').addEventListener('click', () => {
+    document.getElementById('editModal').style.display = 'none';
+  });
+
+  // Export data
+  document.getElementById('exportData').addEventListener('click', () => {
+    loadPanels().then(panels => {
+      const data = { panels };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'xrpl_dashboard_data.json';
+      a.click();
+      URL.revokeObjectURL(url);
     });
-    document.querySelectorAll('.reset-icon').forEach(icon => {
-      icon.addEventListener('click', (e) => { e.stopPropagation(); resetCapturedCount(e.target.dataset.panel); });
-    });
+  });
+
+  // Import data
+  document.getElementById('importBtn').addEventListener('click', () => {
+    document.getElementById('importData').click();
+  });
+
+  document.getElementById('importData').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target.result);
+          if (data.panels) {
+            // Clear existing
+            const container = document.querySelector('.panels-container');
+            container.innerHTML = '';
+            // Save and create new
+            const promises = data.panels.map(panel => savePanel(panel));
+            Promise.all(promises).then(() => {
+              loadAndCreatePanels();
+            });
+          }
+        } catch (err) {
+          alert('Invalid JSON file');
+        }
+      };
+      reader.readAsText(file);
+    }
   });
 })();

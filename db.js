@@ -10,8 +10,18 @@ function getLatestPrice(callback) {
 }
 
 function insertPrice(price, time, ledger, callback) {
-  db.run('INSERT OR IGNORE INTO xrp_price (price, time, ledger) VALUES (?, ?, ?)', [price, time, ledger], function(err) {
-    callback(err, this.changes > 0);
+  if (callback) {
+    db.run('INSERT OR IGNORE INTO xrp_price (price, time, ledger) VALUES (?, ?, ?)', [price, time, ledger], function(err) {
+      callback(err, this.changes > 0);
+    });
+  } else {
+    db.run('INSERT OR IGNORE INTO xrp_price (price, time, ledger) VALUES (?, ?, ?)', [price, time, ledger]);
+  }
+}
+
+function hasHistoricalData(callback) {
+  db.get('SELECT COUNT(*) as count FROM xrp_price WHERE ledger > 0', (err, row) => {
+    callback(err, row ? row.count > 0 : false);
   });
 }
 
@@ -56,5 +66,6 @@ function getGraphData(period, interval, callback) {
 module.exports = {
   getLatestPrice,
   insertPrice,
-  getGraphData
+  getGraphData,
+  hasHistoricalData
 };

@@ -4,238 +4,288 @@ const { insertPrice } = require('./db');
 
 let currentServerIndex = 0;
 let isConnected = false;
+let lastLedgerIndex = null;
 module.exports.client = null;
 
-function connectToXRPL(retryCount = 0) {
+function selectWorkingServer() {
+  return servers[currentServerIndex];
+}
+
+function connectToXRPL(io, userData, filters, currentLedgerTxs, retryCount = 0) {
+  const serverUrl = selectWorkingServer();
+  const options = serverUrl.includes('rich-list') ? { rejectUnauthorized: false } : {};
+
   if (!module.exports.client) {
-    const options = servers[currentServerIndex].includes('rich-list') ? { rejectUnauthorized: false } : {};
-    module.exports.client = new Client(servers[currentServerIndex], options);
+    module.exports.client = new Client(serverUrl, options);
   }
   const client = module.exports.client;
+
   client.connect().then(() => {
-    console.log(`Connected to XRPL at ${servers[currentServerIndex]}`);
+    console.log(`Connected to XRPL at ${serverUrl}`);
     isConnected = true;
+
     client.on('disconnected', () => {
       console.log('Disconnected from XRPL, attempting to reconnect...');
       isConnected = false;
-      setTimeout(() => connectToXRPL(0), 5000); // Retry after 5 seconds
+      setTimeout(() => connectToXRPL(io, userData, filters, currentLedgerTxs, 0), 5000);
     });
+
     client.request({ command: 'subscribe', streams: ['ledger'] }).then(() => {
+      console.log('Subscribed to ledger streams');
+    client.on('ledgerClosed', (ledger) => {
+      lastLedgerIndex = ledger.ledger_index;
+      console.log('Last ledger received:', lastLedgerIndex);
+      processLedger(ledger, io, userData, filters, currentLedgerTxs);
+    });
+
+    client.on('transaction', (tx) => {
+      // Process for panels
+      io.sockets.sockets.forEach(socket => {
+        if (socket.panels) {
+          socket.panels.forEach(panel => {
+            const txJson = tx.tx_json;
+            let amount = 0;
+            let matches = false;
+
+            if (panel.currency === 'XRP' && txJson.TransactionType === 'Payment' && typeof txJson.Amount === 'string') {
+              amount = parseInt(txJson.Amount) / 1000000;
+              matches = amount > panel.limit;
+            } else if (txJson.Amount && typeof txJson.Amount === 'object' && txJson.Amount.currency === panel.currency && (!panel.issuer || txJson.Amount.issuer === panel.issuer)) {
+              amount = parseFloat(txJson.Amount.value);
+              matches = amount > panel.limit;
+            }
+
+            if (matches) {
+              socket.emit(`panelTransaction:${panel.id}`, {
+                ledger: txJson.ledger_index || tx.ledger_index,
+                sender: txJson.Account,
+                receiver: txJson.Destination,
+                amount,
+                timestamp: new Date().toISOString()
+              });
+            }
+          });
+        }
+      });
+    });
       backfillPrices();
-    }).catch(console.error);
+    }).catch((err) => {
+      console.error('Subscribe failed:', err);
+      currentServerIndex = (currentServerIndex + 1) % servers.length;
+      console.log('Cycling to next server due to subscribe failure');
+      connectToXRPL(io, userData, filters, currentLedgerTxs, retryCount + 1);
+    });
+
   }).catch((err) => {
-    console.error(`Connection failed to ${servers[currentServerIndex]}:`, err);
+    console.error(`Connection failed to ${serverUrl}:`, err);
     isConnected = false;
-    currentServerIndex = (currentServerIndex + 1) % servers.length;  // Cycle to next server
+    currentServerIndex = (currentServerIndex + 1) % servers.length;
+
     if (retryCount < 10) {
-      setTimeout(() => connectToXRPL(retryCount + 1), 5000);
+      setTimeout(() => connectToXRPL(io, userData, filters, currentLedgerTxs, retryCount + 1), 5000);
     } else {
       console.error('Max retries reached');
     }
   });
 }
 
-function processLedger(ledger, io, userData, filters) {
-  if (!io) {
-    console.error('io is undefined in processLedger');
-    return;
-  }
+function processLedger(ledger, io, userData, filters, currentLedgerTxs) {
+  console.log('Processing ledger', ledger.ledger_index);
+  if (!module.exports.client) return;
+
   module.exports.client.request({
     command: 'ledger',
     ledger_index: ledger.ledger_index,
     transactions: true
-  }).then(async (ledgerData) => {
-    const txHashes = ledgerData.result.ledger.transactions;
+  }).then((ledgerData) => {
+    const transactions = ledgerData.result.ledger.transactions || [];
+    const fullTransactions = transactions;
 
-    // Fetch full transactions with delay to avoid rate limits
-    const fullTransactions = [];
-    for (const hash of txHashes) {
-      try {
-        const txResponse = await module.exports.client.request({ command: 'tx', transaction: hash });
-        fullTransactions.push(txResponse.result);
-      } catch (err) {
-        if (err.data?.error === 'notSynced') {
-          console.warn('Server not synced, skipping tx:', hash);
-        } else if (err.data?.error === 'slowDown') {
-          console.warn('Server rate limit hit, skipping tx:', hash);
-        } else {
-          console.error('Failed to fetch tx:', hash, err);
-        }
-      }
-      // Add delay to reduce load
-      await new Promise(resolve => setTimeout(resolve, 100));  // 100ms delay
-    }
-    io.emit('ledgerTransactions', fullTransactions);
+    // Update current ledger transactions for inspection
+    currentLedgerTxs.length = 0; // clear previous
+    currentLedgerTxs.push(...fullTransactions);
 
-    let txCount = fullTransactions.length;
-    let xrpPayments = 0;
-    let totalXRP = 0;
-    let totalBurned = 0;
-
-    for (const tx of fullTransactions) {
-      const json = tx.tx_json;
-      const meta = tx.meta;
-      totalBurned += parseInt(json.Fee) || 0;
-
-      // Check for price updates from oracle
-      if (json.Account === ORACLE_ACCOUNT) {
-        const price = parsePriceFromTx(tx);
-        if (price) {
-          io.emit('latestPrice', price);
-        }
-      }
-
-      if (json.TransactionType === 'Payment') {
-        xrpPayments++;  // Increment payment count
-        // Check all filters
-        let amt = json.Amount;
-        if (!amt) amt = meta.delivered_amount;
-        if (typeof amt === 'string') {
-          const xrpAmount = parseInt(amt) / 1000000;
-          totalXRP += xrpAmount;  // Accumulate XRP amount
-        }
-        for (const [key, f] of Object.entries(filters)) {
-          let matches = false;
-          let amount = 0;
-          if (f.currency === 'XRP' && typeof amt === 'string') {
-            amount = parseInt(amt) / 1000000;
-            matches = amount > f.limit;
-          } else if (typeof amt === 'object' && amt.currency === f.currency && (!f.issuer || amt.issuer === f.issuer)) {
-            amount = parseFloat(amt.value);
-            matches = amount > f.limit;
-          }
-          if (matches) {
-            let eventName;
-            if (key === 'xrp') {
-              eventName = 'newTransaction';
-            } else if (key === 'rlusd') {
-              eventName = 'newRLUSDTransaction';
-            } else {
-              eventName = 'new' + key + 'Transaction';
+    // Process real-time price updates
+    fullTransactions.forEach(tx => {
+      const txJson = tx.tx_json || tx;
+      if (txJson.TransactionType === 'TrustSet' && txJson.Account === ORACLE_ACCOUNT && txJson.LimitAmount && txJson.LimitAmount.currency === 'USD') {
+        const price = parseFloat(txJson.LimitAmount.value);
+        if (!isNaN(price) && price > 0) {
+          const timestamp = tx.close_time_iso || (txJson.date ? txJson.date * 1000 + 946684800000 : null);
+          if (timestamp) {
+            const date = new Date(timestamp);
+            if (!isNaN(date.getTime())) {
+              insertPrice(price, date.toISOString(), txJson.ledger_index);
+              io.emit('priceUpdate', price);
             }
-            io.emit(eventName, {
-              ledger: ledger.ledger_index,
-              sender: json.Account,
-              receiver: json.Destination,
+          }
+        }
+      }
+    });
+
+    // Process transactions for wallet activities
+    processWalletActivities(fullTransactions, userData, io, ledger.ledger_index);
+
+    // Ledger statistics
+    const { getLatestPrice } = require('./db');
+    getLatestPrice((err, price) => {
+      io.emit('ledgerInfo', {
+        ledger: ledger.ledger_index,
+        txCount: ledger.txn_count || 0,
+        xrpPayments: 0, // TODO: estimate or calculate from stream
+        totalXRP: 0,
+        totalBurned: 0,
+        latestPrice: price
+      });
+    });
+  }).catch((err) => {
+    console.error('Ledger fetch failed:', err);
+    // Emit with defaults to update menu
+    const { getLatestPrice } = require('./db');
+    getLatestPrice((err2, price) => {
+      io.emit('ledgerInfo', {
+        ledger: ledger.ledger_index,
+        txCount: 0,
+        xrpPayments: 0,
+        totalXRP: 0,
+        totalBurned: 0,
+        latestPrice: price
+      });
+    });
+  });
+}
+
+function processWalletActivities(transactions, userData, io, ledgerIndex) {
+  Object.values(userData).forEach(user => {
+    if (!user.addresses || user.addresses.length === 0) return;
+
+    transactions.forEach(tx => {
+      const txJson = tx.tx_json || tx;
+      if (user.addresses.includes(txJson.Account) ||
+          user.addresses.includes(txJson.Destination)) {
+        io.to(user.socket.id).emit('walletActivity', {
+          ledger: ledgerIndex,
+          account: txJson.Account,
+          destination: txJson.Destination,
+          amount: txJson.Amount,
+          type: txJson.TransactionType
+        });
+      }
+    });
+  });
+}
+
+function processCurrencyLimitMonitors(transactions, filters, io) {
+  console.log(`Processing ${transactions.length} transactions for ${io.sockets.sockets.size} sockets`);
+  // Emit to all sockets with matching panels
+  io.sockets.sockets.forEach(socket => {
+    if (socket.panels) {
+      console.log(`Socket has ${socket.panels.length} panels`);
+      socket.panels.forEach(panel => {
+        transactions.forEach(tx => {
+          const txJson = tx.tx_json || tx;
+          if (!txJson || typeof txJson !== 'object' || !txJson.TransactionType) {
+            console.log('Skipping invalid tx:', tx);
+            return;
+          }
+          console.log('Tx type:', txJson.TransactionType, 'Amount:', txJson.Amount);
+          let amount = 0;
+          let matches = false;
+
+          if (panel.currency === 'XRP' &&
+              txJson.TransactionType === 'Payment' &&
+              typeof txJson.Amount === 'string') {
+            amount = parseInt(txJson.Amount) / 1000000;
+            matches = amount > panel.limit;
+            console.log(`XRP Payment: amount ${amount}, limit ${panel.limit}, matches ${matches}`);
+          } else if (txJson.Amount &&
+                     typeof txJson.Amount === 'object' &&
+                     txJson.Amount.currency === panel.currency &&
+                     (!panel.issuer || txJson.Amount.issuer === panel.issuer)) {
+            amount = parseFloat(txJson.Amount.value);
+            matches = amount > panel.limit;
+            console.log(`Issued Payment: currency ${txJson.Amount.currency}, amount ${amount}, limit ${panel.limit}, matches ${matches}`);
+          }
+
+          if (matches) {
+            console.log(`Emitting panelTransaction:${panel.id} for amount ${amount}`);
+            socket.emit(`panelTransaction:${panel.id}`, {
+              ledger: txJson.ledger_index || tx.ledger_index,
+              sender: txJson.Account,
+              receiver: txJson.Destination,
               amount,
               timestamp: new Date().toISOString()
             });
           }
-        }
-      }
+        });
+      });
+    } else {
+      console.log('Socket has no panels');
     }
-
-    for (const [socketId, data] of Object.entries(userData)) {
-      if (!data.socket || typeof data.socket.emit !== 'function') continue;
-      for (const tx of fullTransactions) {
-        const json = tx.tx_json;
-        if (data.addresses.includes(json.Account) || data.addresses.includes(json.Destination)) {
-          data.socket.emit('walletActivity', {
-            ledger: ledger.ledger_index,
-            account: json.Account,
-            destination: json.Destination,
-            hash: tx.hash
-          });
-        }
-      }
-    }
-
-    // Emit ledger info
-    const totalBurnedXRP = totalBurned * 1e-6;
-    io.emit('ledgerInfo', {
-      ledger: ledger.ledger_index,
-      txCount,
-      xrpPayments,
-      totalXRP,
-      totalBurned: totalBurnedXRP
-    });
-  }).catch((err) => {
-    console.error('Error fetching ledger:', err);
   });
+}
+
+function calculateLedgerStatistics(transactions) {
+  return {
+    txCount: transactions.length,
+    xrpPayments: transactions.filter(tx => {
+      const txJson = tx.tx_json || tx;
+      return txJson.TransactionType === 'Payment' && typeof txJson.Amount === 'string';
+    }).length,
+    totalXRP: transactions
+      .filter(tx => {
+        const txJson = tx.tx_json || tx;
+        return txJson.TransactionType === 'Payment' && typeof txJson.Amount === 'string';
+      })
+      .reduce((sum, tx) => {
+        const txJson = tx.tx_json || tx;
+        return sum + parseInt(txJson.Amount) / 1000000;
+      }, 0),
+    totalBurned: transactions.reduce((sum, tx) => {
+      const txJson = tx.tx_json || tx;
+      return sum + (parseInt(txJson.Fee) / 1000000);
+    }, 0)
+  };
 }
 
 async function backfillPrices() {
-  if (!isConnected) {
-    console.log('XRPL client not connected, skipping backfill');
-    return;
-  }
-  // Use a public server for historical data since rich-list.info has limited history
-  const publicClient = new (require('xrpl').Client)('wss://s1.ripple.com');
-  try {
-    await publicClient.connect();
-    console.log('Connected to public server for backfill');
-    fetchPricesRecursive(publicClient, null, 0);
-  } catch (err) {
-    console.error('Failed to connect to public server for backfill:', err);
-  }
-}
+  if (!module.exports.client) return;
 
-function fetchPricesRecursive(client, marker, depth) {
-  const req = {
-    command: 'account_tx',
-    account: ORACLE_ACCOUNT,
-    limit: 50,
-    forward: false
-  };
-  if (marker) req.marker = marker;
-  client.request(req).then((response) => {
-    const transactions = response.result.transactions;
-    console.log(`Backfilling prices from ${transactions.length} oracle transactions (depth ${depth})`);
-    let inserted = 0;
-    for (const tx of transactions) {
-      const price = parsePriceFromTx(tx);
-      if (price) {
-        let time = tx.close_time_iso || tx.close_time_human;
-        if (!time) {
-          time = new Date((tx.tx_json.date + 946684800) * 1000).toISOString();
+  try {
+    const response = await module.exports.client.request({
+      command: 'account_tx',
+      account: ORACLE_ACCOUNT,
+      limit: 100, // fetch last 100 txs
+      forward: false // most recent first
+    });
+
+    for (const tx of response.result.transactions) {
+      if (tx.tx_json) {
+        const price = parsePriceFromTx(tx);
+        if (price) {
+          insertPrice(price.price, price.time, price.ledger);
         }
-        insertPrice(price, time, tx.ledger_index, (err) => {
-          if (err) console.error('Error inserting price:', err);
-        });
-        inserted++;
       }
     }
-    console.log(`Inserted ${inserted} prices`);
-    if (response.result.marker && depth < 5) {  // Limit to 5 pages
-      setTimeout(() => fetchPricesRecursive(client, response.result.marker, depth + 1), 1000);  // Delay to avoid rate limits
-    } else {
-      console.log('Backfill completed');
-      client.disconnect().catch(console.error);  // Close the public connection after backfill
-    }
-  }).catch((err) => {
-    console.error('Error backfilling prices:', err);
-    client.disconnect().catch(console.error);
-  });
+  } catch (err) {
+    console.error('Backfill prices error:', err);
+  }
 }
 
 function parsePriceFromTx(tx) {
-  if (tx.tx_json.Memos) {
-    for (const memo of tx.tx_json.Memos) {
-      const type = memo.Memo?.MemoType;
-      const data = memo.Memo?.MemoData;
-      if (data) {
-        if (type === '787061727469636C65' || type === '7072696365') {  // 'xparticle' or 'price'
-          try {
-            const decoded = Buffer.from(data, 'hex').toString();
-            const price = parseFloat(decoded);
-            if (!isNaN(price) && price > 0) return price;
-          } catch (e) {
-            console.error('Error decoding memo:', e);
-          }
-        } else if (type && type.startsWith('72617465733A')) {  // 'rates:'
-          try {
-            const decoded = Buffer.from(data, 'hex').toString();
-            const prices = decoded.split(';').map(p => parseFloat(p)).filter(p => !isNaN(p) && p > 0);
-            if (prices.length > 0) {
-              // Take the first price as representative
-              return prices[0];
-            }
-          } catch (e) {
-            console.error('Error decoding rates memo:', e);
-          }
-        }
-      }
-    }
+  if (!tx.tx_json) return null;
+  if (tx.tx_json.TransactionType === 'TrustSet' && tx.tx_json.LimitAmount && tx.tx_json.LimitAmount.currency === 'USD') {
+    const price = parseFloat(tx.tx_json.LimitAmount.value);
+    if (isNaN(price) || price <= 0) return null;
+    const timestamp = tx.close_time_iso || (tx.tx_json.date ? tx.tx_json.date * 1000 + 946684800000 : null);
+    if (!timestamp) return null;
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return null;
+    return {
+      price,
+      time: date.toISOString(),
+      ledger: tx.tx_json.ledger_index || tx.ledger_index
+    };
   }
   return null;
 }
