@@ -1,5 +1,9 @@
 function togglePanel(id) {
   const full = document.getElementById(id + 'Full');
+  if (!full) {
+    console.error('Full element not found for', id);
+    return;
+  }
   if (full.style.display === 'none' || full.style.display === '') {
     full.style.display = 'block';
   } else {
@@ -7,8 +11,12 @@ function togglePanel(id) {
   }
 }
 
+console.log('Client script loaded');
 (function(){
   const socket = io();
+  console.log('Socket created, connected:', socket.connected);
+  socket.on('connect', () => console.log('Socket connected event'));
+  socket.on('disconnect', () => console.log('Socket disconnected event'));
 
   const tableBody = document.querySelector('#transactions tbody');
   const rlusdBody = document.querySelector('#rlusd tbody');
@@ -19,7 +27,7 @@ function togglePanel(id) {
     name: 'Currency Monitor',
     currency: 'XRP',
     issuer: null,
-    limit: 1000000
+    limit: 0
   };
 
 // localStorage for panels
@@ -49,6 +57,8 @@ function deletePanel(id) {
 }
 
   function createPanel(config) {
+    let displayCurrency = config.currency;
+    if (config.currency === '524C555344000000000000000000000000000000') displayCurrency = 'RLUSD';
     const panel = document.createElement('div');
     panel.className = 'panel';
     panel.id = config.id;
@@ -56,19 +66,19 @@ function deletePanel(id) {
       <div class="summary" data-panel="${config.id}" style="position: relative;">
         <span class="edit-icon" data-panel="${config.id}" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
         <span class="reset-icon" data-panel="${config.id}" style="position: absolute; bottom: 5px; right: 5px; cursor: pointer; color: #ff6600; font-size: 16px;">&#128465;</span>
-        <div>${config.name}</div><div>Currency: ${config.currency}${config.issuer ? ' (' + config.issuer + ')' : ''}</div><div class="filter" data-panel="${config.id}">Filter: >${config.limit}</div><div>Captured: <span id="${config.id}Count">0</span></div>
+        <div>${config.name}</div><div>Currency: ${displayCurrency}</div><div class="filter" data-panel="${config.id}">Filter: >${config.limit}</div><div>Captured: <span id="${config.id}Count">0</span></div>
       </div>
       <div class="full" id="${config.id}Full" style="display: none;" onclick="togglePanel('${config.id}')">
         <button onclick="togglePanel('${config.id}')" style="position: absolute; top: 10px; right: 10px; background: #000; color: #ff6600; border: 1px solid #ff6600; font-size: 20px; cursor: pointer;">×</button>
-        <h1>${config.name} - ${config.currency}</h1>
-        <p class="threshold">Monitoring transactions greater than ${config.limit} ${config.currency}</p>
-        <table id="${config.id}Table" onclick="event.stopPropagation()">
+        <h1>${config.name} - ${displayCurrency}</h1>
+        <p class="threshold">Monitoring transactions greater than ${config.limit} ${displayCurrency}</p>
+        <table id="table-${config.id}" onclick="event.stopPropagation()">
           <thead>
             <tr>
               <th>Ledger Number</th>
               <th>Sender Account</th>
               <th>Receiver Account</th>
-              <th>Amount (${config.currency})</th>
+              <th>Amount (${displayCurrency})</th>
               <th>Timestamp</th>
             </tr>
           </thead>
@@ -81,20 +91,21 @@ function deletePanel(id) {
 
   function loadAndCreatePanels() {
     const panels = loadPanels();
-    console.log('Loaded panels:', panels);
     // Ensure default XRP panel exists
-    if (!panels.find(p => p.id === 'default-xrp')) {
-      const defaultPanel = { ...panelTemplate, id: 'default-xrp', name: 'XRP Monitor', currency: 'XRP', issuer: null, limit: 10000000 };
-      panels.push(defaultPanel);
-      savePanel(defaultPanel);
-    }
-    const container = document.querySelector('.panels-container');
-    panels.forEach(config => {
+      if (!panels.find(p => p.id === 'default-xrp')) {
+        const defaultPanel = { ...panelTemplate, id: 'default-xrp', name: 'XRP Monitor', currency: 'XRP', issuer: null, limit: 0 };
+        panels.push(defaultPanel);
+        savePanel(defaultPanel);
+      }
+     const container = document.querySelector('.panels-container');
+     container.innerHTML = ''; // Clear existing panels to avoid duplicates
+     panels.forEach(config => {
       const panel = createPanel(config);
       container.appendChild(panel);
       // Listen for events
+      socket.off(`panelTransaction:${config.id}`); // Remove previous listener to avoid duplicates
       socket.on(`panelTransaction:${config.id}`, (data) => {
-        const tbody = document.querySelector(`#${config.id}Table tbody`);
+        const tbody = document.querySelector(`#table-${config.id} tbody`);
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${data.ledger}</td>
@@ -149,9 +160,8 @@ function deletePanel(id) {
   });
 
    // Ledger info
-   socket.on('ledgerInfo', (data) => {
-     console.log('Ledger info received:', data);
-     document.getElementById('ledgerIndex').textContent = data.ledger || 'N/A';
+    socket.on('ledgerInfo', (data) => {
+      document.getElementById('ledgerIndex').textContent = data.ledger || 'N/A';
      document.getElementById('txCount').textContent = data.txCount || 0;
      document.getElementById('xrpPayments').textContent = data.xrpPayments || 0;
      document.getElementById('xrpBurned').textContent = data.totalBurned ? data.totalBurned.toFixed(2) : '0.00';
@@ -180,11 +190,24 @@ function deletePanel(id) {
     if (activityList.children.length > 20) activityList.removeChild(activityList.firstChild);
   });
 
-   // Price updates
-   socket.on('priceUpdate', (price) => {
-     document.getElementById('currentPrice').textContent = price.toFixed(4);
-     document.getElementById('smallCurrentPrice').textContent = price.toFixed(4);
-   });
+    // Price updates
+    console.log('Setting up priceUpdate handler');
+    socket.on('priceUpdate', (price) => {
+      console.log('Price update received:', price);
+      const currentPriceEl = document.getElementById('currentPrice');
+      const smallCurrentPriceEl = document.getElementById('smallCurrentPrice');
+      console.log('Elements found:', !!currentPriceEl, !!smallCurrentPriceEl);
+      const formatted = price.toFixed(4) + ' (' + new Date().toLocaleTimeString() + ')';
+      console.log('Formatted price:', formatted);
+      if (currentPriceEl) {
+        currentPriceEl.textContent = formatted;
+        console.log('Updated currentPrice');
+      }
+      if (smallCurrentPriceEl) {
+        smallCurrentPriceEl.textContent = formatted;
+        console.log('Updated smallCurrentPrice');
+      }
+    });
 
   // Enhanced Ledger Inspection
   socket.on('inspectLedgerResponse', (ledgerData) => {
@@ -323,20 +346,22 @@ function deletePanel(id) {
   // New panel creation
   document.getElementById('createPanel').addEventListener('click', () => {
     const name = document.getElementById('newCurrencyName').value.trim();
-    const currency = document.getElementById('newCurrencyCode').value.trim();
-    const issuer = document.getElementById('newIssuer').value.trim() || null;
+    let currency = document.getElementById('newCurrencyCode').value.trim();
+    let issuer = document.getElementById('newIssuer').value.trim() || null;
     const limit = parseFloat(document.getElementById('newLimit').value);
+    // Map common names to codes
+    if (currency.toUpperCase() === 'RLUSD') {
+      currency = '524C555344000000000000000000000000000000';
+      if (!issuer) issuer = 'rMxCKbEDwqr76QuheSUMdEGf4B9xJ8m5De';
+    }
     if (!name || !currency || isNaN(limit)) {
       alert('Please fill all fields correctly.');
       return;
     }
     const config = { ...panelTemplate, id: Date.now().toString(), name, currency, issuer, limit };
-    savePanel(config).then(() => {
-      const panel = createPanel(config);
-      document.querySelector('.panels-container').appendChild(panel);
-      socket.emit('updatePanels', [config]); // Send to server
-      document.getElementById('newPanelModal').style.display = 'none';
-    });
+    savePanel(config);
+    loadAndCreatePanels(); // Recreate all panels including the new one
+    document.getElementById('newPanelModal').style.display = 'none';
   });
 
   // Panel toggle and edit/reset handlers
@@ -375,16 +400,16 @@ function deletePanel(id) {
               return;
             }
         savePanel(panel);
-        console.log('Saved panel with limit:', panel.limit);
         // Update DOM
+        let displayCurrency = panel.currency;
+        if (panel.currency === '524C555344000000000000000000000000000000') displayCurrency = 'RLUSD';
         const summary = document.querySelector(`#${panel.id} .summary`);
         const currentCount = document.getElementById(`${panel.id}Count`).textContent;
         summary.innerHTML = `
           <span class="edit-icon" data-panel="${panel.id}" style="position: absolute; top: 5px; right: 5px; cursor: pointer; color: #00ff00; font-size: 16px;">&#9997;</span>
           <span class="reset-icon" data-panel="${panel.id}" style="position: absolute; bottom: 5px; right: 5px; cursor: pointer; color: #ff6600; font-size: 16px;">&#128465;</span>
-          <div>${panel.name}</div><div>Currency: ${panel.currency}${panel.issuer ? ' (' + panel.issuer + ')' : ''}</div><div class="filter" data-panel="${panel.id}">Filter: >${panel.limit}</div><div>Captured: <span id="${panel.id}Count">${currentCount}</span></div>
+          <div>${panel.name}</div><div>Currency: ${displayCurrency}</div><div class="filter" data-panel="${panel.id}">Filter: >${panel.limit}</div><div>Captured: <span id="${panel.id}Count">${currentCount}</span></div>
         `;
-        console.log('Updated DOM with limit:', panel.limit);
         socket.emit('updatePanels', panels);
         document.getElementById('editModal').style.display = 'none';
           });
@@ -405,7 +430,7 @@ function deletePanel(id) {
       // Reset count
       const panelId = e.target.dataset.panel;
       document.getElementById(`${panelId}Count`).textContent = '0';
-      const tbody = document.querySelector(`#${panelId}Table tbody`);
+      const tbody = document.querySelector(`#table-${panelId} tbody`);
       tbody.innerHTML = '';
     }
     if (e.target.classList.contains('filter')) {

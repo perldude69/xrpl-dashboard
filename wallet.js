@@ -1,39 +1,73 @@
+const { Client } = require('xrpl');
+const { servers } = require('./config');
+
+function selectWorkingXRPLServer() {
+  return servers.find(server => !server.includes('rich-list')) || servers[0];
+}
+
 function handleWalletConnections(io, userData) {
   io.on('connection', (socket) => {
-    userData[socket.id] = { socket, addresses: [], nicknames: {}, alerts: {} };
+    userData[socket.id] = { 
+      socket, 
+      addresses: [], 
+      nicknames: {}, 
+      alerts: {},
+      lastProcessedLedger: null 
+    };
+
     socket.on('disconnect', () => {
       delete userData[socket.id];
     });
 
     socket.on('updateWalletData', (data) => {
-      userData[socket.id] = data;
+      userData[socket.id] = {
+        ...userData[socket.id],
+        ...data,
+        lastProcessedLedger: userData[socket.id].lastProcessedLedger
+      };
     });
 
     socket.on('setWatchedAddresses', async (addresses) => {
-      const { Client } = require('xrpl');
-      const client = new Client('wss://rich-list.info:6005/', { rejectUnauthorized: false });
+      const client = new Client(selectWorkingXRPLServer());
       try {
         await client.connect();
-        const balances = [];
-        for (const addr of addresses) {
-          try {
-            const info = await client.request({ command: 'account_info', account: addr });
-            const balance = parseInt(info.result.account_data.Balance) / 1000000;
-            balances.push({ address: addr, balance });
-          } catch (err) {
-            balances.push({ address: addr, balance: 'Invalid' });
-          }
-        }
+        const balances = await Promise.all(
+          addresses.map(async (addr) => {
+            try {
+              const info = await client.request({ command: 'account_info', account: addr });
+              return { 
+                address: addr, 
+                balance: parseInt(info.result.account_data.Balance) / 1000000,
+                sequence: info.result.account_data.Sequence
+              };
+            } catch (err) {
+              return { address: addr, balance: 'Invalid', sequence: null };
+            }
+          })
+        );
         socket.emit('balances', balances);
+        userData[socket.id].addresses = addresses;
       } catch (err) {
         console.error('Wallet balance error:', err);
       } finally {
-        try {
-          await client.disconnect();  // Await the disconnect
-        } catch (disconnectErr) {
-          console.error('Disconnect error:', disconnectErr);
-        }
+        await client.disconnect();
       }
+    });
+
+    socket.on('trackWalletActivity', async (config) => {
+      const { 
+        addresses, 
+        minThreshold = 0, 
+        startLedger = null 
+      } = config;
+
+      userData[socket.id].addresses = addresses;
+      userData[socket.id].lastProcessedLedger = startLedger;
+
+      socket.emit('walletTrackingStarted', {
+        message: `Tracking wallet activities for ${addresses.length} addresses`,
+        addresses
+      });
     });
 
     socket.on('exportData', () => {

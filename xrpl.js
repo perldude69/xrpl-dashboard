@@ -1,6 +1,6 @@
 const { Client } = require('xrpl');
 const { servers, RLUSD_CURRENCY, RLUSD_ISSUER, ORACLE_ACCOUNT } = require('./config');
-const { insertPrice } = require('./db');
+const { insertPrice, getLatestPrice } = require('./db');
 
 let currentServerIndex = 0;
 let isConnected = false;
@@ -31,32 +31,43 @@ function connectToXRPL(io, userData, filters, currentLedgerTxs, retryCount = 0) 
     });
 
     client.request({ command: 'subscribe', streams: ['ledger'] }).then(() => {
-      console.log('Subscribed to ledger streams');
     client.on('ledgerClosed', (ledger) => {
       lastLedgerIndex = ledger.ledger_index;
-      console.log('Last ledger received:', lastLedgerIndex);
       processLedger(ledger, io, userData, filters, currentLedgerTxs);
     });
 
+    client.request({ command: 'subscribe', streams: ['transactions'] }).then(() => {
+      console.log('Subscribed to transactions');
+    }).catch((err) => {
+      console.error('Subscribe transactions failed:', err);
+    });
+
     client.on('transaction', (tx) => {
+      const txJson = tx.tx_json;
       // Process for panels
       io.sockets.sockets.forEach(socket => {
         if (socket.panels) {
           socket.panels.forEach(panel => {
-            const txJson = tx.tx_json;
             let amount = 0;
             let matches = false;
 
-            if (panel.currency === 'XRP' && txJson.TransactionType === 'Payment' && typeof txJson.Amount === 'string') {
-              amount = parseInt(txJson.Amount) / 1000000;
+            if (panel.currency === 'XRP' &&
+                txJson.TransactionType === 'Payment' &&
+                tx.meta && tx.meta.delivered_amount &&
+                typeof tx.meta.delivered_amount === 'string') {
+              amount = parseInt(tx.meta.delivered_amount) / 1000000;
               matches = amount > panel.limit;
-            } else if (txJson.Amount && typeof txJson.Amount === 'object' && txJson.Amount.currency === panel.currency && (!panel.issuer || txJson.Amount.issuer === panel.issuer)) {
-              amount = parseFloat(txJson.Amount.value);
-              matches = amount > panel.limit;
+            } else if (tx.meta && tx.meta.delivered_amount &&
+                      typeof tx.meta.delivered_amount === 'object') {
+              if (tx.meta.delivered_amount.currency === panel.currency &&
+                  (!panel.issuer || tx.meta.delivered_amount.issuer === panel.issuer)) {
+                amount = parseFloat(tx.meta.delivered_amount.value);
+                matches = amount > panel.limit;
+              }
             }
 
             if (matches) {
-              socket.emit(`panelTransaction:${panel.id}`, {
+              socket.emit('panelTransaction:' + panel.id, {
                 ledger: txJson.ledger_index || tx.ledger_index,
                 sender: txJson.Account,
                 receiver: txJson.Destination,
@@ -67,8 +78,20 @@ function connectToXRPL(io, userData, filters, currentLedgerTxs, retryCount = 0) 
           });
         }
       });
+
+      // Real-time price updates from oracle
+      if (txJson.TransactionType === 'TrustSet' && txJson.Account === ORACLE_ACCOUNT && txJson.LimitAmount && txJson.LimitAmount.currency === 'USD') {
+        const price = parseFloat(txJson.LimitAmount.value);
+        if (!isNaN(price) && price > 0) {
+          insertPrice(price, new Date().toISOString(), txJson.ledger_index);
+          console.log('Emitting priceUpdate:', price);
+          io.emit('priceUpdate', price);
+        }
+      }
     });
       backfillPrices();
+      // Poll oracle every 30 seconds as fallback
+      setInterval(() => pollOraclePrice(io), 30000);
     }).catch((err) => {
       console.error('Subscribe failed:', err);
       currentServerIndex = (currentServerIndex + 1) % servers.length;
@@ -90,14 +113,13 @@ function connectToXRPL(io, userData, filters, currentLedgerTxs, retryCount = 0) 
 }
 
 function processLedger(ledger, io, userData, filters, currentLedgerTxs) {
-  console.log('Processing ledger', ledger.ledger_index);
   if (!module.exports.client) return;
 
   module.exports.client.request({
     command: 'ledger',
     ledger_index: ledger.ledger_index,
     transactions: true
-  }).then((ledgerData) => {
+   }).then((ledgerData) => {
     const transactions = ledgerData.result.ledger.transactions || [];
     const fullTransactions = transactions;
 
@@ -188,7 +210,6 @@ function processCurrencyLimitMonitors(transactions, filters, io) {
             console.log('Skipping invalid tx:', tx);
             return;
           }
-          console.log('Tx type:', txJson.TransactionType, 'Amount:', txJson.Amount);
           let amount = 0;
           let matches = false;
 
@@ -199,9 +220,9 @@ function processCurrencyLimitMonitors(transactions, filters, io) {
             matches = amount > panel.limit;
             console.log(`XRP Payment: amount ${amount}, limit ${panel.limit}, matches ${matches}`);
           } else if (txJson.Amount &&
-                     typeof txJson.Amount === 'object' &&
-                     txJson.Amount.currency === panel.currency &&
-                     (!panel.issuer || txJson.Amount.issuer === panel.issuer)) {
+                    typeof txJson.Amount === 'object' &&
+                    txJson.Amount.currency === panel.currency &&
+                    (!panel.issuer || txJson.Amount.issuer === panel.issuer)) {
             amount = parseFloat(txJson.Amount.value);
             matches = amount > panel.limit;
             console.log(`Issued Payment: currency ${txJson.Amount.currency}, amount ${amount}, limit ${panel.limit}, matches ${matches}`);
@@ -288,6 +309,33 @@ function parsePriceFromTx(tx) {
     };
   }
   return null;
+}
+
+async function pollOraclePrice(io) {
+  if (!module.exports.client || !module.exports.client.isConnected()) return;
+  try {
+    const response = await module.exports.client.request({
+      command: 'account_tx',
+      account: ORACLE_ACCOUNT,
+      limit: 1,
+      forward: false
+    });
+    const tx = response.result.transactions[0];
+    if (tx && tx.tx) {
+      const priceData = parsePriceFromTx({ tx_json: tx.tx, close_time_iso: tx.close_time_human, ledger_index: tx.tx.ledger_index });
+      if (priceData) {
+      getLatestPrice((err, latest) => {
+        if (!err && (!latest || Math.abs(priceData.price - latest) > 0.0001)) {
+          insertPrice(priceData.price, priceData.time, priceData.ledger);
+          console.log('Polled new price:', priceData.price);
+          // Removed emit to avoid conflicts with tx stream
+        }
+      });
+      }
+    }
+  } catch (err) {
+    console.error('Poll oracle error:', err);
+  }
 }
 
 module.exports = {

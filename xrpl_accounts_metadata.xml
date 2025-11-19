@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xrpl_accounts>
+  <account id="rMxCKbEDwqr76QuheSUMdEGf4B9xJ8m5De">
+    <function>Issuer of RLUSD stablecoin (pegged to USD)</function>
+    <ownership>Ripple</ownership>
+    <how_to_get_info>Use account_info API for account details; account_lines for trustlines/holders; account_tx for transactions. Domain: ripple.com</how_to_get_info>
+    <additional_info>Flags include depositAuth, disableMasterKey, disallowIncomingXRP, requireDestinationTag, allowTrustLineClawback. Total supply can be estimated from account_lines balances.</additional_info>
+  </account>
+  <account id="rXUMMaPpZqPutoRszR29jtC8amWq3APkx">
+    <function>Oracle publishing XRP/USD prices via TrustSet transactions</function>
+    <ownership>Xumm/Xaman</ownership>
+    <how_to_get_info>Use account_tx API with ledger ranges for historical prices; parse LimitAmount.value for aggregated price, memos for exchange data (hex-encoded CSV). Domain: xrpl-labs.com</how_to_get_info>
+    <additional_info>Prices updated ~every 60 seconds. Memos include rates from Bitstamp, Kraken, Bitfinex, HitBTC, Binance. Historical prices: ~0.62 (2y ago), ~1.89 (1y ago), ~2.41 (1w ago), ~2.22 (current).</additional_info>
+  </account>
+  <account id="r9cZA1mLK5R5Am25ArfXFmqgNwjZgnfk59">
+    <function>Sample account for testing/demonstration</function>
+    <ownership>Unknown</ownership>
+    <how_to_get_info>Use account_info and account_tx APIs</how_to_get_info>
+    <additional_info>Has balance, sequence, etc. Used in examples.</additional_info>
+  </account>
+  <account id="rsT3yYMkuicxW1hYsy787mg5XHhkz2uQRk">
+    <function>EverNorth company account, holds large XRP balance and sends payments</function>
+    <ownership>EverNorth</ownership>
+    <how_to_get_info>Use account_info API for account details; account_tx for transactions. Created by rD4G6gtD2KwHqsRf7pcyA8r1neUzXT61ix</how_to_get_info>
+    <additional_info>Flags include disableMasterKey, requireDestinationTag. Uses multi-sign with signers rGJUhrGoqk2bxJoWYYxWpQtkMY6TRYj83A and rJYTKHEVhHKhaXF5GnRPd6zUaBSVDqTjRH. Recent tx: large XRP payments to other accounts.</additional_info>
+  </account>
+  <account id="rD4G6gtD2KwHqsRf7pcyA8r1neUzXT61ix">
+    <function>Account creator/funder, sends XRP to activate new accounts</function>
+    <ownership>Unknown (likely related to EverNorth or service provider)</ownership>
+    <how_to_get_info>Use account_info API for account details; account_tx for transactions</how_to_get_info>
+    <additional_info>Normal account with large balance. Recent tx: payments of ~1.22 XRP to create new accounts. Sequence: 125655.</additional_info>
+  </account>
+</xrpl_accounts>
