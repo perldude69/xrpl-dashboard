@@ -2,10 +2,11 @@
   "name": "xrpldash",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-    "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/index.js",
+    "test": "jest",
+    "test:legacy": "node test/test_price_flow.js"
   },
   "keywords": [],
   "author": "",
@@ -13,8 +14,13 @@
   "dependencies": {
     "axios": "^1.13.2",
     "express": "^5.1.0",
+    "puppeteer": "^24.31.0",
     "socket.io": "^4.8.1",
     "sqlite3": "^5.1.7",
     "xrpl": "^4.4.3"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0",
+    "socket.io-client": "^4.8.1"
   }
 }

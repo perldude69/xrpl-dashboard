@@ -44,8 +44,8 @@ async function populateDB() {
   await client.connect();
   console.log('Connected to XRPL');
 
-  const account = 'rXUMMaPpZqPutoRszR29jtC8amWq3APkx';
-  let marker = {"ledger":99722300,"seq":34};
+   const account = 'rXUMMaPpZqPutoRszR29jtC8amWq3APkx';
+   let marker = null;
   let count = 0;
   let pendingInserts = 0;  // Track pending operations
 
@@ -77,18 +77,20 @@ async function populateDB() {
           if (tx.tx_json) {
             let price = null;
             let time = tx.close_time_human || new Date((tx.tx_json.date + 946684800) * 1000).toISOString();
-            let ledger = tx.ledger_index;
+            let ledger = tx.ledger_index || tx.tx_json.ledger_index;
 
             if (tx.tx_json.LimitAmount) {
               price = parseFloat(tx.tx_json.LimitAmount.value);
             } else if (tx.tx_json.TransactionType === 'OfferCreate' && tx.tx_json.TakerPays && tx.tx_json.TakerGets) {
-              if (tx.tx_json.TakerPays.currency === 'XRP' && tx.tx_json.TakerGets.currency === 'USD') {
-                const xrpDrops = parseFloat(tx.tx_json.TakerPays.value);
+              const takerPaysIsXRP = typeof tx.tx_json.TakerPays === 'string' || tx.tx_json.TakerPays.currency === 'XRP';
+              const takerGetsIsXRP = typeof tx.tx_json.TakerGets === 'string' || tx.tx_json.TakerGets.currency === 'XRP';
+              if (takerPaysIsXRP && tx.tx_json.TakerGets.currency === 'USD') {
+                const xrpDrops = typeof tx.tx_json.TakerPays === 'string' ? parseFloat(tx.tx_json.TakerPays) : parseFloat(tx.tx_json.TakerPays.value);
                 const usdAmount = parseFloat(tx.tx_json.TakerGets.value);
                 price = usdAmount * 1000000 / xrpDrops;
-              } else if (tx.tx_json.TakerPays.currency === 'USD' && (!tx.tx_json.TakerGets.currency || tx.tx_json.TakerGets.currency === 'XRP')) {
+              } else if (tx.tx_json.TakerPays.currency === 'USD' && takerGetsIsXRP) {
                 const usdAmount = parseFloat(tx.tx_json.TakerPays.value);
-                const xrpDrops = parseFloat(tx.tx_json.TakerGets.value);
+                const xrpDrops = typeof tx.tx_json.TakerGets === 'string' ? parseFloat(tx.tx_json.TakerGets) : parseFloat(tx.tx_json.TakerGets.value);
                 price = usdAmount / (xrpDrops / 1000000);
               }
             }

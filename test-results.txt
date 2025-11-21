@@ -1,0 +1,569 @@
+
+> xrpldash@1.0.0 test
+> jest
+
+FAIL __tests__/populate_db.test.js
+  ● Console
+
+    console.log
+      Connected to XRPL
+
+      at log (populate_db.js:45:11)
+
+    console.log
+      Processed 1 transactions, total inserted: 0
+
+      at log (populate_db.js:110:17)
+
+    console.log
+      Finished populating DB with 0 entries
+
+      at log (populate_db.js:119:16)
+
+    console.log
+      Connected to XRPL
+
+      at log (populate_db.js:45:11)
+
+    console.log
+      Processed 1 transactions, total inserted: 0
+
+      at log (populate_db.js:110:17)
+
+    console.log
+      Finished populating DB with 0 entries
+
+      at log (populate_db.js:119:16)
+
+    console.log
+      Connected to XRPL
+
+      at log (populate_db.js:45:11)
+
+    console.log
+      Processed 1 transactions, total inserted: 0
+
+      at log (populate_db.js:110:17)
+
+    console.log
+      Finished populating DB with 0 entries
+
+      at log (populate_db.js:119:16)
+
+    console.log
+      Connected to XRPL
+
+      at log (populate_db.js:45:11)
+
+    console.error
+      Error fetching transactions: Error: Request failed
+          at Object.<anonymous> (/home/jim/code/xrpldash/__tests__/populate_db.test.js:140:44)
+          at Promise.finally.completed (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+          at _callCircusTest (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+          at _runTest (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+          at /home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+          at _runTestsForDescribeBlock (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+          at _runTestsForDescribeBlock (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+          at _runTestsForDescribeBlock (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+          at run (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+          at runAndTransformResultsToJestFormat (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+          at jestAdapter (/home/jim/code/xrpldash/node_modules/jest-circus/build/runner.js:101:19)
+          at runTestInternal (/home/jim/code/xrpldash/node_modules/jest-runner/build/index.js:275:16)
+          at runTest (/home/jim/code/xrpldash/node_modules/jest-runner/build/index.js:343:7)
+
+      110 |         console.log(`Processed ${transactions.length} transactions, total inserted: ${count}`);
+      111 |       } catch (err) {
+    > 112 |         console.error('Error fetching transactions:', err);
+          |                 ^
+      113 |         break;
+      114 |       }
+      115 |     } while (marker);
+
+      at error (populate_db.js:112:17)
+
+    console.log
+      Finished populating DB with 0 entries
+
+      at log (populate_db.js:119:16)
+
+    console.log
+      Connected to XRPL
+
+      at log (populate_db.js:45:11)
+
+    console.log
+      Processed 1 transactions, total inserted: 0
+
+      at log (populate_db.js:110:17)
+
+    console.log
+      Finished populating DB with 0 entries
+
+      at log (populate_db.js:119:16)
+
+  ● populate_db.js › populateDB › should populate database with price data
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    - Expected
+    + Received
+
+      Object {
+        "account": "rXUMMaPpZqPutoRszR29jtC8amWq3APkx",
+        "command": "account_tx",
+        "forward": false,
+        "limit": 400,
+    +   "marker": Object {
+    +     "ledger": 99722300,
+    +     "seq": 34,
+    +   },
+      },
+
+    Number of calls: 1
+
+      61 |
+      62 |       expect(mockClient.connect).toHaveBeenCalled();
+    > 63 |       expect(mockClient.request).toHaveBeenCalledWith({
+         |                                  ^
+      64 |         command: 'account_tx',
+      65 |         account: 'rXUMMaPpZqPutoRszR29jtC8amWq3APkx',
+      66 |         limit: 400,
+
+      at Object.toHaveBeenCalledWith (__tests__/populate_db.test.js:63:34)
+
+  ● populate_db.js › populateDB › should handle OfferCreate transactions
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "INSERT INTO xrp_price (price, time, ledger) VALUES (?, ?, ?)", [10000000, "2023-01-02T00:00:00.000Z", 101], Any<Function>
+
+    Number of calls: 0
+
+       96 |       await populateDB();
+       97 |
+    >  98 |       expect(mockDb.run).toHaveBeenCalledWith(
+          |                          ^
+       99 |         'INSERT INTO xrp_price (price, time, ledger) VALUES (?, ?, ?)',
+      100 |         [10000000, '2023-01-02T00:00:00.000Z', 101], // 10 USD / 0.000001 XRP = 10,000,000
+      101 |         expect.any(Function)
+
+      at Object.toHaveBeenCalledWith (__tests__/populate_db.test.js:98:26)
+
+  ● populate_db.js › populateDB › should parse price from memos
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "INSERT INTO xrp_price (price, time, ledger) VALUES (?, ?, ?)", [12.34, "2023-01-03T00:00:00.000Z", 102], Any<Function>
+
+    Number of calls: 0
+
+      130 |       await populateDB();
+      131 |
+    > 132 |       expect(mockDb.run).toHaveBeenCalledWith(
+          |                          ^
+      133 |         'INSERT INTO xrp_price (price, time, ledger) VALUES (?, ?, ?)',
+      134 |         [12.34, '2023-01-03T00:00:00.000Z', 102],
+      135 |         expect.any(Function)
+
+      at Object.toHaveBeenCalledWith (__tests__/populate_db.test.js:132:26)
+
+  ● populate_db.js › populateDB › should handle request errors
+
+    expect(received).rejects.toThrow()
+
+    Received promise resolved instead of rejected
+    Resolved to value: undefined
+
+      140 |       mockClient.request.mockRejectedValue(new Error('Request failed'));
+      141 |
+    > 142 |       await expect(populateDB()).rejects.toThrow('Request failed');
+          |             ^
+      143 |     });
+      144 |
+      145 |     test('should handle database insert errors', async () => {
+
+      at expect (node_modules/expect/build/index.js:2116:15)
+      at Object.expect (__tests__/populate_db.test.js:142:13)
+
+FAIL __tests__/fetch_prices.test.js
+  ● Console
+
+    console.log
+      Inserted 0 prices from CSV
+
+      at log (fetch_prices.js:27:13)
+
+    console.log
+      Inserted 0 prices from CSV
+
+      at log (fetch_prices.js:27:13)
+
+    console.log
+      Inserted 0 prices from CSV
+
+      at log (fetch_prices.js:27:13)
+
+  ● fetch_prices.js › should parse CSV and insert prices
+
+    ReferenceError: parseCSV is not defined
+
+      32 | });
+      33 |
+    > 34 | parseCSV();
+         | ^
+
+      at Object.parseCSV (fetch_prices.js:34:1)
+      at Object.require (__tests__/fetch_prices.test.js:52:5)
+
+  ● fetch_prices.js › should skip empty price values
+
+    ReferenceError: parseCSV is not defined
+
+      32 | });
+      33 |
+    > 34 | parseCSV();
+         | ^
+
+      at Object.parseCSV (fetch_prices.js:34:1)
+      at Object.require (__tests__/fetch_prices.test.js:80:5)
+
+  ● fetch_prices.js › should handle CSV parsing errors gracefully
+
+    ReferenceError: parseCSV is not defined
+
+      32 | });
+      33 |
+    > 34 | parseCSV();
+         | ^
+
+      at Object.parseCSV (fetch_prices.js:34:1)
+      at Object.require (__tests__/fetch_prices.test.js:109:5)
+
+FAIL __tests__/interpolate_minutes.test.js
+  ● interpolate_minutes.js › should interpolate minute data for each date
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 2
+    Received number of calls: 0
+
+      47 |
+      48 |     // Should prepare statement for each date
+    > 49 |     expect(mockDb.prepare).toHaveBeenCalledTimes(2);
+         |                            ^
+      50 |     expect(mockDb.prepare).toHaveBeenCalledWith('INSERT OR IGNORE INTO xrp_price (price, time, ledger) VALUES (?, ?, ?)');
+      51 |
+      52 |     // Should run 24 * 60 = 1440 inserts per date
+
+      at Object.toHaveBeenCalledTimes (__tests__/interpolate_minutes.test.js:49:28)
+
+(node:896790) Warning: Setting the NODE_TLS_REJECT_UNAUTHORIZED environment variable to '0' makes TLS connections and HTTPS requests insecure by disabling certificate verification.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS __tests__/index.test.js
+  ● Console
+
+    console.error
+      Invalid transaction object provided
+
+      68 |   try {
+      69 |     if (!tx || typeof tx !== 'object') {
+    > 70 |       console.error('Invalid transaction object provided');
+         |               ^
+      71 |       return null;
+      72 |     }
+      73 |
+
+      at error (index.js:70:15)
+      at Object.safelyProcessTransaction (__tests__/index.test.js:6:14)
+
+    console.error
+      Invalid transaction object provided
+
+      68 |   try {
+      69 |     if (!tx || typeof tx !== 'object') {
+    > 70 |       console.error('Invalid transaction object provided');
+         |               ^
+      71 |       return null;
+      72 |     }
+      73 |
+
+      at error (index.js:70:15)
+      at Object.safelyProcessTransaction (__tests__/index.test.js:7:14)
+
+    console.error
+      Transaction processing error: TypeError: Cannot read properties of undefined (reading 'Account')
+          at Account (/home/jim/code/xrpldash/index.js:76:23)
+          at Object.safelyProcessTransaction (/home/jim/code/xrpldash/__tests__/index.test.js:8:14)
+          at Promise.finally.completed (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+          at _callCircusTest (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+          at _runTest (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+          at /home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+          at _runTestsForDescribeBlock (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+          at _runTestsForDescribeBlock (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+          at _runTestsForDescribeBlock (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+          at run (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+          at runAndTransformResultsToJestFormat (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+          at jestAdapter (/home/jim/code/xrpldash/node_modules/jest-circus/build/runner.js:101:19)
+          at runTestInternal (/home/jim/code/xrpldash/node_modules/jest-runner/build/index.js:275:16)
+          at runTest (/home/jim/code/xrpldash/node_modules/jest-runner/build/index.js:343:7)
+
+      140 |     };
+      141 |   } catch (error) {
+    > 142 |     console.error('Transaction processing error:', error);
+          |             ^
+      143 |     return null;
+      144 |   }
+      145 | }
+
+      at error (index.js:142:13)
+      at Object.safelyProcessTransaction (__tests__/index.test.js:8:14)
+
+    console.error
+      Invalid transaction object provided
+
+      68 |   try {
+      69 |     if (!tx || typeof tx !== 'object') {
+    > 70 |       console.error('Invalid transaction object provided');
+         |               ^
+      71 |       return null;
+      72 |     }
+      73 |
+
+      at error (index.js:70:15)
+      at Object.safelyProcessTransaction (__tests__/index.test.js:9:14)
+
+    console.error
+      Transaction processing error: TypeError: Cannot read properties of null (reading 'Account')
+          at Account (/home/jim/code/xrpldash/index.js:76:23)
+          at Object.safelyProcessTransaction (/home/jim/code/xrpldash/__tests__/index.test.js:222:22)
+          at Promise.finally.completed (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+          at _callCircusTest (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+          at _runTest (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+          at /home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+          at _runTestsForDescribeBlock (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+          at _runTestsForDescribeBlock (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+          at _runTestsForDescribeBlock (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+          at run (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+          at runAndTransformResultsToJestFormat (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+          at jestAdapter (/home/jim/code/xrpldash/node_modules/jest-circus/build/runner.js:101:19)
+          at runTestInternal (/home/jim/code/xrpldash/node_modules/jest-runner/build/index.js:275:16)
+          at runTest (/home/jim/code/xrpldash/node_modules/jest-runner/build/index.js:343:7)
+
+      140 |     };
+      141 |   } catch (error) {
+    > 142 |     console.error('Transaction processing error:', error);
+          |             ^
+      143 |     return null;
+      144 |   }
+      145 | }
+
+      at error (index.js:142:13)
+      at Object.safelyProcessTransaction (__tests__/index.test.js:222:22)
+
+PASS __tests__/xrpl.test.js
+  ● Console
+
+    console.error
+      Backfill prices error: Error: Request failed
+          at Object.<anonymous> (/home/jim/code/xrpldash/__tests__/xrpl.test.js:118:44)
+          at Promise.finally.completed (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+          at _callCircusTest (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+          at _runTest (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+          at /home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+          at _runTestsForDescribeBlock (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+          at _runTestsForDescribeBlock (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+          at _runTestsForDescribeBlock (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+          at run (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+          at runAndTransformResultsToJestFormat (/home/jim/code/xrpldash/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+          at jestAdapter (/home/jim/code/xrpldash/node_modules/jest-circus/build/runner.js:101:19)
+          at runTestInternal (/home/jim/code/xrpldash/node_modules/jest-runner/build/index.js:275:16)
+          at runTest (/home/jim/code/xrpldash/node_modules/jest-runner/build/index.js:343:7)
+
+      223 |     }
+      224 |   }).catch((err) => {
+    > 225 |     console.error('Backfill prices error:', err);
+          |             ^
+      226 |   });
+      227 | }
+      228 |
+
+      at error (xrpl.js:225:13)
+
+    console.log
+      Polled new price: 11
+
+      at log (xrpl.js:266:21)
+
+PASS __tests__/db.test.js
+PASS __tests__/utils.test.js
+PASS __tests__/config.test.js
+FAIL __tests__/wallet.test.js
+  ● Test suite failed to run
+
+    Jest encountered an unexpected token
+
+    Jest failed to parse a file. This happens e.g. when your code or its dependencies use non-standard JavaScript syntax, or when Jest is not configured to support such syntax.
+
+    Out of the box Jest supports Babel, which will be used to transform your files into valid JS based on your Babel configuration.
+
+    By default "node_modules" folder is ignored by transformers.
+
+    Here's what you can do:
+     • If you are trying to use ECMAScript Modules, see https://jestjs.io/docs/ecmascript-modules for how to enable it.
+     • If you are trying to use TypeScript, see https://jestjs.io/docs/getting-started#using-typescript
+     • To have some of your "node_modules" files transformed, you can specify a custom "transformIgnorePatterns" in your config.
+     • If you need a custom transformation, specify a "transform" option in your config.
+     • If you simply want to mock your non-JS modules (e.g. binary assets) you can stub them out with the "moduleNameMapper" config option.
+
+    You'll find more details and examples of these config options in the docs:
+    https://jestjs.io/docs/configuration
+    For information about custom transformations, see:
+    https://jestjs.io/docs/code-transformation
+
+    Details:
+
+    SyntaxError: /home/jim/code/xrpldash/__tests__/wallet.test.js: Unexpected token (188:5)
+
+      186 |       expect(mockSocket.emit).toHaveBeenCalledWith('walletData', userData[mockSocket.id]);
+      187 |     });
+    > 188 |   });
+          |      ^
+
+      at constructor (node_modules/@babel/parser/src/parse-error.ts:95:45)
+      at Parser.toParseError [as raise] (node_modules/@babel/parser/src/tokenizer/index.ts:1507:19)
+      at Parser.raise [as unexpected] (node_modules/@babel/parser/src/tokenizer/index.ts:1547:16)
+      at Parser.unexpected [as parseExprAtom] (node_modules/@babel/parser/src/parser/expression.ts:1355:22)
+      at Parser.parseExprAtom [as parseExprSubscripts] (node_modules/@babel/parser/src/parser/expression.ts:742:23)
+      at Parser.parseExprSubscripts [as parseUpdate] (node_modules/@babel/parser/src/parser/expression.ts:721:21)
+      at Parser.parseUpdate [as parseMaybeUnary] (node_modules/@babel/parser/src/parser/expression.ts:683:23)
+      at Parser.parseMaybeUnary [as parseMaybeUnaryOrPrivate] (node_modules/@babel/parser/src/parser/expression.ts:417:14)
+      at Parser.parseMaybeUnaryOrPrivate [as parseExprOps] (node_modules/@babel/parser/src/parser/expression.ts:429:23)
+      at Parser.parseExprOps [as parseMaybeConditional] (node_modules/@babel/parser/src/parser/expression.ts:384:23)
+      at Parser.parseMaybeConditional [as parseMaybeAssign] (node_modules/@babel/parser/src/parser/expression.ts:301:21)
+      at Parser.parseMaybeAssign [as parseExpressionBase] (node_modules/@babel/parser/src/parser/expression.ts:226:23)
+      at parseExpressionBase (node_modules/@babel/parser/src/parser/expression.ts:217:39)
+      at Parser.callback [as allowInAnd] (node_modules/@babel/parser/src/parser/expression.ts:3197:16)
+      at Parser.allowInAnd [as parseExpression] (node_modules/@babel/parser/src/parser/expression.ts:217:17)
+      at Parser.parseExpression [as parseStatementContent] (node_modules/@babel/parser/src/parser/statement.ts:688:23)
+      at Parser.parseStatementContent [as parseStatementLike] (node_modules/@babel/parser/src/parser/statement.ts:482:17)
+      at Parser.parseStatementLike [as parseStatementListItem] (node_modules/@babel/parser/src/parser/statement.ts:431:17)
+      at Parser.parseStatementListItem [as parseBlockOrModuleBlockBody] (node_modules/@babel/parser/src/parser/statement.ts:1444:16)
+      at Parser.parseBlockOrModuleBlockBody [as parseBlockBody] (node_modules/@babel/parser/src/parser/statement.ts:1417:10)
+      at Parser.parseBlockBody [as parseBlock] (node_modules/@babel/parser/src/parser/statement.ts:1385:10)
+      at Parser.parseBlock [as parseFunctionBody] (node_modules/@babel/parser/src/parser/expression.ts:2626:24)
+      at Parser.parseFunctionBody [as parseArrowExpression] (node_modules/@babel/parser/src/parser/expression.ts:2563:10)
+      at Parser.parseArrowExpression [as parseParenAndDistinguishExpression] (node_modules/@babel/parser/src/parser/expression.ts:1847:12)
+      at Parser.parseParenAndDistinguishExpression [as parseExprAtom] (node_modules/@babel/parser/src/parser/expression.ts:1170:21)
+      at Parser.parseExprAtom [as parseExprSubscripts] (node_modules/@babel/parser/src/parser/expression.ts:742:23)
+      at Parser.parseExprSubscripts [as parseUpdate] (node_modules/@babel/parser/src/parser/expression.ts:721:21)
+      at Parser.parseUpdate [as parseMaybeUnary] (node_modules/@babel/parser/src/parser/expression.ts:683:23)
+      at Parser.parseMaybeUnary [as parseMaybeUnaryOrPrivate] (node_modules/@babel/parser/src/parser/expression.ts:417:14)
+      at Parser.parseMaybeUnaryOrPrivate [as parseExprOps] (node_modules/@babel/parser/src/parser/expression.ts:429:23)
+      at Parser.parseExprOps [as parseMaybeConditional] (node_modules/@babel/parser/src/parser/expression.ts:384:23)
+      at Parser.parseMaybeConditional [as parseMaybeAssign] (node_modules/@babel/parser/src/parser/expression.ts:301:21)
+      at parseMaybeAssign (node_modules/@babel/parser/src/parser/expression.ts:257:12)
+      at Parser.callback [as allowInAnd] (node_modules/@babel/parser/src/parser/expression.ts:3202:12)
+      at Parser.allowInAnd [as parseMaybeAssignAllowIn] (node_modules/@babel/parser/src/parser/expression.ts:256:17)
+      at Parser.parseMaybeAssignAllowIn [as parseMaybeAssignAllowInOrVoidPattern] (node_modules/@babel/parser/src/parser/expression.ts:3316:17)
+      at Parser.parseMaybeAssignAllowInOrVoidPattern [as parseExprListItem] (node_modules/@babel/parser/src/parser/expression.ts:2798:18)
+      at Parser.parseExprListItem [as parseCallExpressionArguments] (node_modules/@babel/parser/src/parser/expression.ts:1042:14)
+      at Parser.parseCallExpressionArguments [as parseCoverCallAndAsyncArrowHead] (node_modules/@babel/parser/src/parser/expression.ts:922:29)
+      at Parser.parseCoverCallAndAsyncArrowHead [as parseSubscript] (node_modules/@babel/parser/src/parser/expression.ts:804:19)
+      at Parser.parseSubscript [as parseSubscripts] (node_modules/@babel/parser/src/parser/expression.ts:763:19)
+      at Parser.parseSubscripts [as parseExprSubscripts] (node_modules/@babel/parser/src/parser/expression.ts:748:17)
+      at Parser.parseExprSubscripts [as parseUpdate] (node_modules/@babel/parser/src/parser/expression.ts:721:21)
+      at Parser.parseUpdate [as parseMaybeUnary] (node_modules/@babel/parser/src/parser/expression.ts:683:23)
+      at Parser.parseMaybeUnary [as parseMaybeUnaryOrPrivate] (node_modules/@babel/parser/src/parser/expression.ts:417:14)
+      at Parser.parseMaybeUnaryOrPrivate [as parseExprOps] (node_modules/@babel/parser/src/parser/expression.ts:429:23)
+      at Parser.parseExprOps [as parseMaybeConditional] (node_modules/@babel/parser/src/parser/expression.ts:384:23)
+      at Parser.parseMaybeConditional [as parseMaybeAssign] (node_modules/@babel/parser/src/parser/expression.ts:301:21)
+      at Parser.parseMaybeAssign [as parseExpressionBase] (node_modules/@babel/parser/src/parser/expression.ts:226:23)
+      at parseExpressionBase (node_modules/@babel/parser/src/parser/expression.ts:217:39)
+      at Parser.callback [as allowInAnd] (node_modules/@babel/parser/src/parser/expression.ts:3197:16)
+      at Parser.allowInAnd [as parseExpression] (node_modules/@babel/parser/src/parser/expression.ts:217:17)
+      at Parser.parseExpression [as parseStatementContent] (node_modules/@babel/parser/src/parser/statement.ts:688:23)
+      at Parser.parseStatementContent [as parseStatementLike] (node_modules/@babel/parser/src/parser/statement.ts:482:17)
+      at Parser.parseStatementLike [as parseModuleItem] (node_modules/@babel/parser/src/parser/statement.ts:419:17)
+      at Parser.parseModuleItem [as parseBlockOrModuleBlockBody] (node_modules/@babel/parser/src/parser/statement.ts:1443:16)
+      at Parser.parseBlockOrModuleBlockBody [as parseBlockBody] (node_modules/@babel/parser/src/parser/statement.ts:1417:10)
+      at Parser.parseBlockBody [as parseProgram] (node_modules/@babel/parser/src/parser/statement.ts:229:10)
+      at Parser.parseProgram [as parseTopLevel] (node_modules/@babel/parser/src/parser/statement.ts:203:25)
+      at Parser.parseTopLevel [as parse] (node_modules/@babel/parser/src/parser/index.ts:88:25)
+      at parse (node_modules/@babel/parser/src/index.ts:86:38)
+      at parser (node_modules/@babel/core/src/parser/index.ts:29:19)
+          at parser.next (<anonymous>)
+      at normalizeFile (node_modules/@babel/core/src/transformation/normalize-file.ts:50:24)
+          at normalizeFile.next (<anonymous>)
+      at run (node_modules/@babel/core/src/transformation/index.ts:41:36)
+          at run.next (<anonymous>)
+      at transform (node_modules/@babel/core/src/transform.ts:29:20)
+          at transform.next (<anonymous>)
+      at evaluateSync (node_modules/gensync/index.js:251:28)
+      at sync (node_modules/gensync/index.js:89:14)
+      at fn (node_modules/@babel/core/src/errors/rewrite-stack-trace.ts:99:14)
+      at transformSync (node_modules/@babel/core/src/transform.ts:66:52)
+      at ScriptTransformer.transformSource (node_modules/@jest/transform/build/index.js:422:31)
+      at ScriptTransformer._transformAndBuildScript (node_modules/@jest/transform/build/index.js:519:40)
+      at ScriptTransformer.transform (node_modules/@jest/transform/build/index.js:558:19)
+
+Test Suites: 4 failed, 5 passed, 9 total
+Tests:       8 failed, 44 passed, 52 total
+Snapshots:   0 total
+Time:        1.573 s
+Ran all test suites.
+
+  ●  Cannot log after tests are done. Did you forget to wait for something async in your test?
+    Attempted to log "Connected to XRPL at wss://rich-list.info:6005/".
+
+      56 |
+      57 |   client.connect().then(() => {
+    > 58 |     console.log(`Connected to XRPL at ${serverUrl}`);
+         |             ^
+      59 |     isConnected = true;
+      60 |
+      61 |     client.on('disconnected', () => {
+
+      at console.log (node_modules/@jest/console/build/index.js:147:10)
+      at log (xrpl.js:58:13)
+
+
+  ●  Cannot log after tests are done. Did you forget to wait for something async in your test?
+    Attempted to log "Subscribed to transactions".
+
+      89 |
+      90 |     client.request({ command: 'subscribe', streams: ['transactions'] }).then(() => {
+    > 91 |       console.log('Subscribed to transactions');
+         |               ^
+      92 |     }).catch((err) => {
+      93 |       console.error('Subscribe transactions failed:', err);
+      94 |     });
+
+      at console.log (node_modules/@jest/console/build/index.js:147:10)
+      at log (xrpl.js:91:15)
+
+
+  ●  Cannot log after tests are done. Did you forget to wait for something async in your test?
+    Attempted to log "Subscribed to ledger".
+
+       95 |
+       96 |     client.request({ command: 'subscribe', streams: ['ledger'] }).then(() => {
+    >  97 |       console.log('Subscribed to ledger');
+          |               ^
+       98 |     }).catch((err) => {
+       99 |       console.error('Subscribe ledger failed:', err);
+      100 |     });
+
+      at console.log (node_modules/@jest/console/build/index.js:147:10)
+      at log (xrpl.js:97:15)
+
+Jest did not exit one second after the test run has completed.
+
+'This usually means that there are asynchronous operations that weren't stopped in your tests. Consider running Jest with `--detectOpenHandles` to troubleshoot this issue.

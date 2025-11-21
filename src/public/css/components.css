@@ -1,0 +1,418 @@
+/* Component-specific styles */
+
+/* Menu */
+#menu {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  background: linear-gradient(to right, var(--accent-primary), var(--accent-secondary));
+  color: var(--bg-primary);
+  padding: var(--spacing-xs);
+  z-index: var(--z-dropdown);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  flex-wrap: nowrap;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+#menu > * {
+  width: 20ch;
+}
+
+#menu button {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--accent-primary);
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  margin-left: var(--spacing-md);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+#menu button:hover {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+}
+
+#menu button:focus {
+  outline: 2px solid var(--accent-primary);
+  border-radius: var(--border-radius);
+}
+
+/* Panels */
+.panel {
+  background: var(--bg-panel);
+  margin: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--border-color);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.panels-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  margin-top: 60px; /* Account for fixed menu */
+}
+
+/* Ledger Overview panel styling - positioned after Wallet Monitoring */
+#ledger-overview {
+  margin-top: var(--spacing-xl); /* Extra spacing from Wallet Monitoring panel */
+  clear: both; /* Ensure it starts on a new "row" */
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--spacing-md);
+}
+
+th, td {
+  border: 1px solid var(--accent-primary);
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-align: left;
+  color: var(--text-primary);
+  transition: background-color var(--transition-fast);
+}
+
+th {
+  background-color: var(--table-header-bg);
+  color: var(--bg-primary);
+  font-family: var(--font-family);
+  font-weight: var(--font-weight-bold);
+}
+
+tr:nth-child(even) {
+  background-color: var(--table-even-row);
+}
+
+tr:nth-child(odd) {
+  background-color: var(--table-odd-row);
+}
+
+tr:hover {
+  background-color: var(--hover-bg);
+}
+
+/* Forms and inputs */
+.threshold {
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.wallet-input {
+  width: 400px;
+  max-width: 100%;
+  padding: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--border-radius);
+  transition: border-color var(--transition-fast);
+}
+
+.wallet-input:focus {
+  outline: 2px solid var(--accent-primary);
+}
+
+/* Summary panels */
+.summary {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 32ch;
+  height: auto;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  margin-bottom: var(--spacing-md);
+  font-weight: bold;
+  padding: var(--spacing-md);
+  color: var(--text-primary);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.summary div {
+  margin: 2px 0;
+  text-align: left;
+}
+
+/* Full screen overlays */
+.full {
+  position: fixed;
+  top: 10%;
+  left: 10%;
+  width: 80%;
+  height: 80%;
+  background: var(--bg-primary);
+  z-index: var(--z-modal);
+  padding: var(--spacing-lg);
+  overflow: auto;
+  border: 2px solid var(--accent-primary);
+  border-radius: var(--border-radius-lg);
+  color: var(--text-primary);
+}
+
+/* Notifications */
+.notification {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+  border-radius: var(--border-radius);
+  opacity: 0;
+  transition: opacity var(--transition-slow);
+}
+
+.notification.show {
+  opacity: 1;
+}
+
+.notification.error {
+  background: var(--accent-error);
+}
+
+/* Icons */
+.edit-icon:hover {
+  color: var(--accent-primary);
+}
+
+.reset-icon:hover {
+  color: var(--accent-error);
+}
+
+/* Wallet components */
+.balance {
+  font-size: 12px;
+  color: var(--text-primary);
+  margin-left: var(--spacing-md);
+}
+
+.wallet-subpanel {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--bg-panel);
+}
+
+.wallet-list {
+  list-style: none;
+  padding: 0;
+}
+
+.wallet-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.wallet-item input[type="checkbox"] {
+  margin-right: var(--spacing-md);
+}
+
+.wallet-item button {
+  margin-left: auto;
+  background: var(--accent-error);
+  color: var(--bg-primary);
+  border: none;
+  padding: 2px var(--spacing-sm);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.wallet-item button:hover {
+  background: #cc0000;
+}
+
+/* Toggle buttons */
+.toggle-btn {
+  cursor: pointer;
+  color: var(--accent-primary);
+  font-size: 14px;
+  margin-top: var(--spacing-md);
+  transition: color var(--transition-fast);
+}
+
+.toggle-btn:hover {
+  color: var(--accent-secondary);
+}
+
+/* Hidden utility class */
+.hidden {
+  display: none;
+}
+
+/* Ledger components */
+.ledger-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: var(--spacing-lg);
+}
+
+.metric-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  padding: 15px;
+  text-align: center;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.metric-icon {
+  font-size: 24px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.metric-label {
+  font-size: 12px;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.metric-value {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--accent-primary);
+}
+
+/* Wallet monitoring section */
+.monitored-wallets-section {
+  margin-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-color);
+  padding-top: 15px;
+}
+
+.wallets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.wallet-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.wallet-card.inactive {
+  border-color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.wallet-card:hover {
+  background: var(--bg-panel-hover);
+}
+
+.wallet-icon {
+  font-size: 18px;
+  margin-right: var(--spacing-md);
+}
+
+.wallet-address {
+  flex: 1;
+  font-family: var(--font-family);
+  font-size: 12px;
+}
+
+.tracking-status {
+  font-size: 10px;
+  color: var(--text-primary);
+}
+
+/* Table containers */
+.ledger-table-container {
+  overflow-y: auto;
+  margin-top: 15px;
+}
+
+/* Modal overlays */
+#modalOverlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: var(--z-modal);
+}
+
+/* Edit modal */
+#editModal {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-primary);
+  border: 2px solid var(--accent-primary);
+  padding: var(--spacing-lg);
+  z-index: calc(var(--z-modal) + 1);
+  color: var(--text-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 4px 20px var(--shadow);
+}
+
+/* New panel modal */
+#newPanelModal {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-primary);
+  border: 2px solid var(--accent-primary);
+  padding: var(--spacing-lg);
+  z-index: calc(var(--z-modal) + 1);
+  color: var(--text-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 4px 20px var(--shadow);
+}
+
+/* Ledger overlay */
+#ledgerOverlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--modal-bg);
+  z-index: var(--z-modal);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 12px;
+  padding: var(--spacing-lg);
+  overflow: auto;
+}
+
+/* Notifications container - now part of the panel */
+#notifications {
+  /* No longer fixed positioned - part of normal document flow */
+}
+
+/* Borderless table styles */
+.no-border th,
+.no-border td {
+  border: none;
+}
+
+.no-border th {
+  background-color: transparent;
+  color: var(--text-primary);
+}
