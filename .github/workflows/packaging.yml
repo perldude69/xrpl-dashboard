@@ -1,0 +1,51 @@
+name: Packaging - lean build
+
+on:
+  push:
+    branches:
+      - feat/pack-clean-build
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-packaging:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+
+      - name: Install dependencies (production)
+        run: |
+          npm ci --production
+        working-directory: .
+
+      - name: Install jq (for version extraction)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Run packaging script to generate lean build
+        run: |
+          bash scripts/pack_to_clean_build.sh
+
+      - name: Verify packaging contents
+        run: |
+          bash xrpldash_clean_build/verify_contents.sh
+
+      - name: Create distributable artifact (tar.gz)
+        run: |
+          VERSION=$(jq -r '.version' xrpldash_clean_build/package.json)
+          mkdir -p artifacts
+          tar -czf artifacts/xrpldash-dist-${VERSION}.tar.gz -C xrpldash_clean_build .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: xrpldash-packaged-artifact
+          path: artifacts/xrpldash-dist-*.tar.gz
