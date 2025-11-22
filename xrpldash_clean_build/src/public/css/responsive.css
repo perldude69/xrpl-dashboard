@@ -1,0 +1,224 @@
+/* Responsive styles for mobile and tablet */
+
+/* Mobile first approach */
+
+/* Small screens (phones) */
+@media (max-width: 576px) {
+  :root {
+    --font-size-base: 12px;
+  }
+
+  #menu {
+    flex-direction: column;
+    padding: var(--spacing-sm);
+    font-size: 8px;
+  }
+
+  #menu > * {
+    width: 100%;
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .panels-container {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    margin-top: 120px; /* More space for stacked menu */
+  }
+
+  .panel {
+    margin: var(--spacing-md);
+    padding: var(--spacing-md);
+  }
+
+  .summary {
+    width: 100%;
+  }
+
+  .full {
+    top: 5%;
+    left: 5%;
+    width: 90%;
+    height: 90%;
+    padding: var(--spacing-sm);
+  }
+
+  #priceChart {
+    height: 250px !important; /* Smaller height on mobile */
+  }
+
+  /* Stack chart controls vertically on mobile */
+  #graphFull > div:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  #graphFull select,
+  #graphFull button {
+    width: 100%;
+    margin: 0;
+  }
+
+  .ledger-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+
+  .wallets-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wallet-input {
+    width: 100%;
+  }
+
+  table {
+    font-size: 12px;
+  }
+
+  th, td {
+    padding: var(--spacing-xs);
+  }
+
+  .metric-card {
+    padding: var(--spacing-md);
+  }
+
+  .metric-value {
+    font-size: 16px;
+  }
+
+  /* Stack wallet items vertically on very small screens */
+  .wallet-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .wallet-item button {
+    margin-left: 0;
+    margin-top: var(--spacing-xs);
+  }
+}
+
+/* Medium screens (tablets) */
+@media (min-width: 577px) and (max-width: 768px) {
+  .panels-container {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--spacing-md);
+  }
+
+  .ledger-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .wallets-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+
+  #menu {
+    font-size: 9px;
+  }
+
+  #menu > * {
+    width: 15ch;
+  }
+}
+
+/* Large screens (desktops) */
+@media (min-width: 769px) {
+  .panels-container {
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  }
+
+  .ledger-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  .wallets-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+}
+
+/* Extra large screens */
+@media (min-width: 1200px) {
+  .panels-container {
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  }
+
+  .ledger-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border-color: var(--text-primary);
+    --border-light: var(--text-secondary);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 0s;
+    --transition-slow: 0s;
+  }
+
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  #menu,
+  #notifications,
+  .full,
+  #ledgerOverlay,
+  #editModal,
+  #newPanelModal,
+  #modalOverlay {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .panel {
+    break-inside: avoid;
+    border: 1px solid black !important;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+
+  th, td {
+    border: 1px solid black !important;
+  }
+
+  /* Chart responsive styles */
+  #priceChart {
+    height: 250px !important;
+  }
+
+  .chart-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-sm);
+  }
+
+  .control-group {
+    justify-content: space-between;
+  }
+
+  .chart-container {
+    padding: var(--spacing-sm);
+  }
+}

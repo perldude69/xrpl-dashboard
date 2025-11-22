@@ -1,0 +1,196 @@
+/* Theme definitions using CSS custom properties */
+
+/* Default theme variables (Dark theme) */
+:root {
+  /* Colors */
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0a;
+  --bg-panel: rgba(0, 255, 0, 0.05);
+  --bg-panel-hover: rgba(0, 255, 0, 0.1);
+  --text-primary: #00ff00;
+  --text-secondary: #cccccc;
+  --text-muted: #888888;
+  --accent-primary: #ff6600;
+  --accent-secondary: #ff0000;
+  --accent-success: #00ff00;
+  --accent-warning: #ffaa00;
+  --accent-error: #ff0000;
+  --border-color: #00ff00;
+  --border-light: #333333;
+  --hover-bg: #333333;
+  --table-header-bg: #ff6600;
+  --table-even-row: #111111;
+  --table-odd-row: #0a0a0a;
+  --modal-bg: rgba(0, 0, 0, 0.9);
+  --shadow: rgba(0, 255, 0, 0.2);
+
+  /* Typography */
+  --font-family: 'JetBrains Mono', 'Courier New', monospace;
+  --font-size-base: 14px;
+  --font-weight-normal: 400;
+  --font-weight-bold: 700;
+
+  /* Spacing */
+  --spacing-xs: 3px;
+  --spacing-sm: 5px;
+  --spacing-md: 10px;
+  --spacing-lg: 20px;
+  --spacing-xl: 30px;
+
+  /* Layout */
+  --border-radius: 3px;
+  --border-radius-lg: 6px;
+
+  /* Transitions */
+  --transition-fast: 0.2s ease;
+  --transition-slow: 0.5s ease;
+
+   /* Z-index */
+   --z-modal: 1000;
+   --z-dropdown: 100;
+   --z-tooltip: 200;
+
+  /* Chart colors */
+  --chart-line: var(--accent-success);
+  --chart-fill: rgba(0, 255, 0, 0.1);
+  --chart-fill-gradient-start: rgba(0, 255, 0, 0.2);
+  --chart-fill-gradient-end: rgba(0, 255, 0, 0.02);
+  --chart-grid: var(--border-light);
+  --chart-text: var(--text-secondary);
+  --chart-point: var(--accent-success);
+  --chart-point-hover: var(--accent-secondary);
+}
+
+/* Light Theme */
+.theme-light {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-panel: #ffffff;
+  --bg-panel-hover: #f8f9fa;
+  --text-primary: #000000;
+  --text-secondary: #495057;
+  --text-muted: #6c757d;
+  --accent-primary: #007bff;
+  --accent-secondary: #0056b3;
+  --accent-success: #28a745;
+  --accent-warning: #ffc107;
+  --accent-error: #dc3545;
+  --border-color: #dee2e6;
+  --border-light: #e9ecef;
+  --hover-bg: #f8f9fa;
+  --table-header-bg: #007bff;
+  --table-even-row: #f8f9fa;
+  --table-odd-row: #ffffff;
+   --modal-bg: rgba(255, 255, 255, 0.95);
+   --shadow: rgba(0, 0, 0, 0.1);
+
+   /* Chart colors */
+  --chart-line: var(--accent-success);
+  --chart-fill: rgba(40, 167, 69, 0.1);
+  --chart-fill-gradient-start: rgba(40, 167, 69, 0.2);
+  --chart-fill-gradient-end: rgba(40, 167, 69, 0.02);
+  --chart-grid: var(--border-light);
+  --chart-text: var(--text-secondary);
+  --chart-point: var(--accent-success);
+  --chart-point-hover: var(--accent-secondary);
+}
+
+/* Neon/Cyberpunk Theme */
+.theme-neon {
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0a;
+  --bg-panel: rgba(0, 255, 255, 0.05);
+  --bg-panel-hover: rgba(0, 255, 255, 0.1);
+  --text-primary: #00ffff;
+  --text-secondary: #ff00ff;
+  --text-muted: #888888;
+  --accent-primary: #0080ff;
+  --accent-secondary: #39ff14;
+  --accent-success: #39ff14;
+  --accent-warning: #ff1493;
+  --accent-error: #ff0000;
+  --border-color: #00ffff;
+  --border-light: #333333;
+  --hover-bg: #1a1a1a;
+  --table-header-bg: #ff1493;
+  --table-even-row: #0a0a0a;
+  --table-odd-row: #111111;
+   --modal-bg: rgba(0, 0, 0, 0.95);
+   --shadow: rgba(0, 255, 255, 0.3);
+
+   /* Chart colors */
+  --chart-line: var(--accent-success);
+  --chart-fill: rgba(57, 255, 20, 0.1);
+  --chart-fill-gradient-start: rgba(57, 255, 20, 0.2);
+  --chart-fill-gradient-end: rgba(57, 255, 20, 0.02);
+  --chart-grid: var(--border-light);
+  --chart-text: var(--text-secondary);
+  --chart-point: var(--accent-success);
+  --chart-point-hover: var(--accent-secondary);
+}
+
+/* Minimal Theme */
+.theme-minimal {
+  --bg-primary: #f8f9fa;
+  --bg-secondary: #ffffff;
+  --bg-panel: #ffffff;
+  --bg-panel-hover: #f8f9fa;
+  --text-primary: #000000;
+  --text-secondary: #495057;
+  --text-muted: #6c757d;
+  --accent-primary: #6c757d;
+  --accent-secondary: #495057;
+  --accent-success: #28a745;
+  --accent-warning: #ffc107;
+  --accent-error: #dc3545;
+  --border-color: #dee2e6;
+  --border-light: #e9ecef;
+  --hover-bg: #f8f9fa;
+  --table-header-bg: #6c757d;
+  --table-even-row: #f8f9fa;
+  --table-odd-row: #ffffff;
+   --modal-bg: rgba(255, 255, 255, 0.95);
+   --shadow: rgba(0, 0, 0, 0.05);
+
+   /* Chart colors */
+  --chart-line: var(--accent-primary);
+  --chart-fill: rgba(108, 117, 125, 0.1);
+  --chart-fill-gradient-start: rgba(108, 117, 125, 0.2);
+  --chart-fill-gradient-end: rgba(108, 117, 125, 0.02);
+  --chart-grid: var(--border-light);
+  --chart-text: var(--text-secondary);
+  --chart-point: var(--accent-primary);
+  --chart-point-hover: var(--accent-secondary);
+}
+
+/* Dark theme (explicit for clarity) */
+.theme-dark {
+  /* Uses root defaults */
+}
+
+/* Auto theme based on system preference */
+@media (prefers-color-scheme: light) {
+  body:not([class*="theme-"]) {
+    /* Apply light theme variables if no explicit theme is set */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --bg-panel: #ffffff;
+    --bg-panel-hover: #f8f9fa;
+    --text-primary: #000000;
+    --text-secondary: #495057;
+    --text-muted: #6c757d;
+    --accent-primary: #007bff;
+    --accent-secondary: #0056b3;
+    --accent-success: #28a745;
+    --accent-warning: #ffc107;
+    --accent-error: #dc3545;
+    --border-color: #dee2e6;
+    --border-light: #e9ecef;
+    --hover-bg: #f8f9fa;
+    --table-header-bg: #007bff;
+    --table-even-row: #f8f9fa;
+    --table-odd-row: #ffffff;
+    --modal-bg: rgba(255, 255, 255, 0.95);
+    --shadow: rgba(0, 0, 0, 0.1);
+  }
+}
