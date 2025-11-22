@@ -26,7 +26,7 @@ JS
 rsync -a --delete --exclude '__tests__' "$ROOT_DIR/src/" "$BUILD_DIR/src/"
 
 # copy data artifacts if present
-for f in xrpl_accounts_metadata.xml xrpl_js_metadata.json xrpl_amm_summary.json xrpl_api_methods_summary.json xrpl_nft_summary.json xrpl_protocol_summary.json xrp_prices.csv; do
+for f in xrpl_accounts_metadata.xml xrpl_js_metadata.json xrpl_amm_summary.json xrpl_api_methods_summary.json xrpl_nft_summary.json xrpl_protocol_summary.json xrp_prices.csv xrp_prices.db; do
   if [ -f "$ROOT_DIR/$f" ]; then
     cp "$ROOT_DIR/$f" "$BUILD_DIR/data/"; fi
 done
